@@ -23,7 +23,7 @@ cd openwrt
 printf '\nsrc-link istore %s\n' "$TASK_ROOT/istore-src" >> feeds.conf.default
 ./scripts/feeds update -a
 ./scripts/feeds install -a
-./scripts/feeds install -f -p istore luci-app-store luci-lib-taskd luci-lib-xterm taskd
+./scripts/feeds install -f -d y -p istore luci-app-store luci-lib-taskd luci-lib-xterm taskd
 mkdir -p package/custom
 # Replace a feed's OpenClash package if present, avoiding duplicate definitions.
 find package/feeds -type l -name luci-app-openclash -delete
@@ -42,7 +42,12 @@ required=(
 )
 for symbol in "${required[@]}"; do
     grep -Fqx "CONFIG_${symbol}=y" .config || {
-        echo "Required selection missing after defconfig: CONFIG_${symbol}"; exit 1;
+        echo "Required selection missing after defconfig: CONFIG_${symbol}"
+        grep -n -A30 -B2 'PACKAGE_luci-app-store' tmp/.config-package.in || true
+        grep -n -A25 -B2 'PACKAGE_luci-lib-taskd' tmp/.config-package.in || true
+        grep -n -A25 -B2 'PACKAGE_taskd' tmp/.config-package.in || true
+        grep -E 'store|taskd|xterm|libuci-lua|mount-utils|script-utils|coreutils|liblua' .config || true
+        exit 1;
     }
 done
 cp -a "$TASK_ROOT/files" .
