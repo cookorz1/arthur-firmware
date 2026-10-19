@@ -1,0 +1,91 @@
+#!/bin/sh
+# Environment roots are used by offline tests; production uses normal sysfs.
+SYSFS_ROOT="${ARTHUR_SYSFS_ROOT:-/sys/class/net}"
+LOCK_DIR="${ARTHUR_LOCK_DIR:-/var/lock/arthur-usb.lock}"
+mkdir "$LOCK_DIR" 2>/dev/null || exit 0
+trap 'rmdir "$LOCK_DIR" 2>/dev/null' EXIT
+trap 'exit 1' INT TERM
+
+valid_device() {
+    case "$1" in ''|*[!a-zA-Z0-9_.:-]*) return 1 ;; esac
+    [ -d "$SYSFS_ROOT/$1" ]
+}
+
+is_zte_usb() {
+    valid_device "$1" || return 1
+    path="$(readlink -f "$SYSFS_ROOT/$1/device" 2>/dev/null)"
+    [ -n "$path" ] || return 1
+    while [ "$path" != / ] && [ -n "$path" ]; do
+        [ ! -r "$path/idVendor" ] || break
+        path="${path%/*}"
+    done
+    [ -r "$path/idVendor" ] && [ "$(cat "$path/idVendor")" = 19d2 ]
+}
+
+changed=0
+set_network() {
+    if [ "$(uci -q get "$1")" != "$2" ]; then
+        uci -q set "$1=$2" || return 1
+        changed=1
+    fi
+}
+
+if [ "$(uci -q get arthur.usb.enabled)" = 0 ]; then
+    if uci -q get network.f50 >/dev/null; then
+        set_network network.f50.auto 0
+        if [ "$changed" = 1 ]; then
+            uci -q commit network
+            ubus call network reload >/dev/null 2>&1
+        fi
+        ifdown f50 >/dev/null 2>&1
+    fi
+    logger -t arthur 'F50 USB uplink disabled'
+    exit 0
+fi
+
+device=''
+if [ -n "$1" ]; then
+    is_zte_usb "$1" || exit 0
+    device="$1"
+else
+    for entry in "$SYSFS_ROOT"/*; do
+        candidate="${entry##*/}"
+        if is_zte_usb "$candidate"; then device="$candidate"; break; fi
+    done
+fi
+[ -n "$device" ] || exit 0
+set_network network.f50 interface
+set_network network.f50.proto dhcp
+set_network network.f50.device "$device"
+set_network network.f50.auto 1
+set_network network.f50.metric 10
+
+i=0
+zone=''
+while uci -q get "firewall.@zone[$i]" >/dev/null; do
+    if [ "$(uci -q get "firewall.@zone[$i].name")" = wan ]; then
+        zone="@zone[$i]"
+        break
+    fi
+    i=$((i + 1))
+done
+if [ -n "$zone" ]; then
+    networks="$(uci -q get "firewall.$zone.network")"
+    case " $networks " in
+        *' f50 '*) ;;
+        *)
+            uci -q add_list "firewall.$zone.network=f50"
+            uci -q commit firewall
+            ubus call service event '{"type":"config.change","data":{"package":"firewall"}}' >/dev/null 2>&1
+            ;;
+    esac
+else
+    logger -t arthur 'WAN firewall zone missing; review F50 firewall assignment'
+fi
+if [ "$changed" = 1 ]; then
+    uci -q commit network
+    ubus call network reload >/dev/null 2>&1
+fi
+ifup f50 >/dev/null 2>&1
+logger -t arthur "F50 USB uplink enabled on $device"
+exit 0

@@ -1,0 +1,7 @@
+/openwrt/
+/openclash-src/
+/istore-src/
+/logs/
+/output/
+__pycache__/
+*.pyc

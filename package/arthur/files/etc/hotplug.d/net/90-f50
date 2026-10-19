@@ -1,0 +1,4 @@
+#!/bin/sh
+[ "$ACTION" = add ] || exit 0
+/usr/libexec/arthur-usb "$INTERFACE" >/dev/null 2>&1 &
+exit 0

@@ -1,0 +1,31 @@
+#!/bin/sh /etc/rc.common
+START=95
+USE_PROCD=1
+
+start_service() {
+    /usr/libexec/arthur-usb
+    # ath11k may finish probing after the boot-time uci-defaults pass.
+    if [ -f /etc/uci-defaults/99-arthur-wireless ]; then
+        (
+            attempt=0
+            while [ "$attempt" -lt 5 ]; do
+                if sh /etc/uci-defaults/99-arthur-wireless; then
+                    rm -f /etc/uci-defaults/99-arthur-wireless
+                    wifi reload >/dev/null 2>&1
+                    exit 0
+                fi
+                attempt=$((attempt + 1))
+                sleep 2
+            done
+            logger -t arthur 'Wireless initialisation deferred until next boot'
+        ) &
+    fi
+}
+
+reload_service() {
+    /usr/libexec/arthur-usb
+}
+
+service_triggers() {
+    procd_add_reload_trigger arthur
+}

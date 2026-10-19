@@ -1,0 +1,56 @@
+#!/bin/sh
+SYSFS_ROOT="${ARTHUR_SYSFS_ROOT:-/sys/class/net}"
+
+port_json() {
+    local device="$1" label="$2" present=false link=false speed=null duplex=unknown
+    local carrier current_speed current_duplex details
+    if [ -d "$SYSFS_ROOT/$device" ]; then
+        present=true
+        carrier="$(cat "$SYSFS_ROOT/$device/carrier" 2>/dev/null)"
+        current_speed="$(cat "$SYSFS_ROOT/$device/speed" 2>/dev/null)"
+        current_duplex="$(cat "$SYSFS_ROOT/$device/duplex" 2>/dev/null)"
+        case "$carrier:$current_speed" in
+            0:*) ;;
+            1:[0-9]*) ;;
+            *)
+                details="$(ethtool "$device" 2>/dev/null)"
+                [ -n "$carrier" ] || carrier="$(printf '%s\n' "$details" | awk '/Link detected:/ {print ($3 == "yes" ? 1 : 0)}')"
+                current_speed="$(printf '%s\n' "$details" | sed -n 's/^[[:space:]]*Speed: \([0-9][0-9]*\)Mb\/s.*$/\1/p')"
+                current_duplex="$(printf '%s\n' "$details" | awk '/Duplex:/ {print tolower($2)}')"
+                ;;
+        esac
+        if [ "$carrier" = 1 ]; then
+            link=true
+            case "$current_speed" in ''|*[!0-9]*) ;; *)
+                [ "$current_speed" -le 0 ] || speed="$current_speed"
+                ;;
+            esac
+            case "$current_duplex" in full|half) duplex="$current_duplex" ;; esac
+        fi
+    fi
+    printf '{"label":"%s","device":"%s","present":%s,"link":%s,"speed":%s,"duplex":"%s"}' \
+        "$label" "$device" "$present" "$link" "$speed" "$duplex"
+}
+
+case "$1" in
+    list) printf '{"status":{}}\n' ;;
+    call)
+        [ "$2" = status ] || exit 1
+        enabled=true
+        [ "$(uci -q get arthur.usb.enabled)" != 0 ] || enabled=false
+        usb_device="$(uci -q get network.f50.device)"
+        case "$usb_device" in *[!a-zA-Z0-9_.:-]*) usb_device='' ;; esac
+        present=false
+        [ -z "$usb_device" ] || [ ! -d "$SYSFS_ROOT/$usb_device" ] || present=true
+        up=false
+        [ "$(ubus call network.interface.f50 status 2>/dev/null | jsonfilter -e '@.up' 2>/dev/null)" != true ] || up=true
+        printf '{"ports":['
+        port_json wan WAN
+        printf ','; port_json lan1 LAN1
+        printf ','; port_json lan2 LAN2
+        printf ','; port_json lan3 LAN3
+        printf '],"usb_enabled":%s,"usb_present":%s,"usb_up":%s,"usb_device":"%s"}\n' \
+            "$enabled" "$present" "$up" "$usb_device"
+        ;;
+    *) exit 1 ;;
+esac

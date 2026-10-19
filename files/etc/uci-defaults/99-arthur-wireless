@@ -1,0 +1,41 @@
+#!/bin/sh
+# Initialise only unconfigured factory APs; retain existing custom networks.
+KEY_FILE="${ARTHUR_WIFI_KEY_FILE:-/etc/arthur-wifi-password}"
+wifi config >/dev/null 2>&1 || exit 1
+interfaces="$(uci -q show wireless | sed -n 's/^wireless\.\([^=]*\)=wifi-iface$/\1/p')"
+[ -n "$interfaces" ] || exit 1
+changed=0
+key=''
+for section in $interfaces; do
+    [ "$(uci -q get "wireless.$section.mode")" = ap ] || continue
+    ssid="$(uci -q get "wireless.$section.ssid")"
+    case "$ssid" in ''|OpenWrt|ImmortalWrt|LibWrt) ;; *) continue ;; esac
+    existing_key="$(uci -q get "wireless.$section.key")"
+    encryption="$(uci -q get "wireless.$section.encryption")"
+    [ -z "$existing_key" ] || continue
+    case "$encryption" in ''|none) ;; *) continue ;; esac
+    radio="$(uci -q get "wireless.$section.device")"
+    [ -n "$radio" ] || continue
+    if [ -z "$key" ]; then
+        [ ! -r "$KEY_FILE" ] || key="$(cat "$KEY_FILE")"
+        if [ "${#key}" -lt 16 ]; then
+            key="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 18)"
+            [ "${#key}" = 18 ] || exit 1
+            (umask 077; printf '%s\n' "$key" >"$KEY_FILE") || exit 1
+        fi
+    fi
+    band="$(uci -q get "wireless.$radio.band")"
+    case "$band" in
+        5g) ssid='Arthur-5G' ;;
+        2g) ssid='Arthur-2.4G' ;;
+        *) continue ;;
+    esac
+    uci -q set "wireless.$radio.disabled=0"
+    uci -q set "wireless.$section.disabled=0"
+    uci -q set "wireless.$section.ssid=$ssid"
+    uci -q set "wireless.$section.encryption=sae-mixed"
+    uci -q set "wireless.$section.key=$key"
+    changed=1
+done
+[ "$changed" != 1 ] || uci -q commit wireless
+exit 0

@@ -28,6 +28,7 @@ mkdir -p package/custom
 # Replace a feed's OpenClash package if present, avoiding duplicate definitions.
 find package/feeds -type l -name luci-app-openclash -delete
 cp -a "$TASK_ROOT/openclash-src/luci-app-openclash" package/custom/
+cp -a "$TASK_ROOT/package/arthur" package/custom/arthur
 cp "$TASK_ROOT/config.seed" .config
 make defconfig
 cp .config "$TASK_ROOT/logs/resolved.config"
@@ -35,11 +36,10 @@ cp tmp/.packageinfo "$TASK_ROOT/logs/packageinfo.txt"
 cp tmp/.config-package.in "$TASK_ROOT/logs/config-package.in"
 required=(
   TARGET_qualcommax_ipq60xx_DEVICE_jdcloud_re-ss-01
-  PACKAGE_luci-app-openclash PACKAGE_luci-app-store PACKAGE_luci-compat
-  PACKAGE_kmod-usb-net-cdc-ether PACKAGE_kmod-usb-net-rndis
-  PACKAGE_kmod-usb-net-cdc-ncm PACKAGE_usb-modeswitch
-  PACKAGE_dnsmasq-full PACKAGE_kmod-nft-tproxy
 )
+while IFS= read -r package_name; do
+    [ -z "$package_name" ] || required+=("PACKAGE_$package_name")
+done < "$TASK_ROOT/required-packages.txt"
 for symbol in "${required[@]}"; do
     grep -Fqx "CONFIG_${symbol}=y" .config || {
         echo "Required selection missing after defconfig: CONFIG_${symbol}"
@@ -51,7 +51,7 @@ for symbol in "${required[@]}"; do
     }
 done
 cp -a "$TASK_ROOT/files" .
-chmod 0755 files/etc/uci-defaults/99-arthur-custom files/etc/hotplug.d/net/90-f50
+find files/etc/uci-defaults -type f -exec chmod 0755 {} +
 mkdir -p files/etc/openclash/core
 # Embed the stable upstream arm64 Mihomo core, recording its version and hash.
 python3 - "$TASK_ROOT/output/core-version.json" <<'PY'
@@ -88,13 +88,14 @@ for feed in feeds/*; do
     printf '%s %s\n' "$feed" "$(git -C "$feed" rev-parse HEAD)"
 done > "$TASK_ROOT/output/feed-revisions.txt"
 cp "$TASK_ROOT/versions.env" "$TASK_ROOT/output/versions.env"
+cp "$TASK_ROOT/required-packages.txt" "$TASK_ROOT/output/required-packages.txt"
 fi
 [ "${PREPARE_ONLY:-0}" != 1 ] || { echo 'Preparation and required-package checks completed.'; exit 0; }
 cd "$TASK_ROOT/openwrt"
 make download -j8
 make -j"${BUILD_JOBS:-$(nproc)}" || make -j1 V=s
 python3 - "$TASK_ROOT/output" <<'PY'
-import hashlib, pathlib, shutil, sys, tarfile
+import hashlib, json, pathlib, shutil, sys, tarfile
 target = pathlib.Path('bin/targets/qualcommax/ipq60xx')
 output = pathlib.Path(sys.argv[1])
 images = sorted(p for p in target.glob('*jdcloud_re-ss-01*') if p.name.endswith(('-factory.bin', '-sysupgrade.bin')))
@@ -112,9 +113,33 @@ manifests = list(target.glob('*.manifest'))
 if not manifests:
     raise SystemExit('Package manifest missing')
 manifest_text = '\n'.join(p.read_text() for p in manifests)
-for package in ['luci-app-openclash', 'luci-app-store', 'kmod-usb-net-cdc-ether', 'kmod-usb-net-rndis', 'kmod-usb-net-cdc-ncm']:
+for package in (output / 'required-packages.txt').read_text().splitlines():
+    if not package:
+        continue
     if not any(line.startswith(package + ' - ') for line in manifest_text.splitlines()):
         raise SystemExit('Required package missing from output manifest: ' + package)
+roots = list(pathlib.Path('build_dir').glob('target-*/root-qualcommax'))
+if len(roots) != 1:
+    raise SystemExit('Expected one assembled firmware root for custom feature verification')
+root = roots[0]
+required_files = [
+    'usr/libexec/rpcd/arthur', 'usr/libexec/arthur-usb', 'etc/init.d/arthur',
+    'etc/hotplug.d/net/90-f50', 'etc/config/arthur',
+    'etc/uci-defaults/99-arthur-wireless',
+    'www/luci-static/resources/view/arthur/network.js',
+    'usr/share/luci/menu.d/luci-app-arthur.json',
+    'usr/share/rpcd/acl.d/luci-app-arthur.json'
+]
+for relative in required_files:
+    if not (root / relative).is_file():
+        raise SystemExit('Custom feature missing from firmware root: ' + relative)
+if not (root / 'www/luci-static/argon').is_dir():
+    raise SystemExit('Argon theme assets missing from firmware root')
+(output / 'feature-checks.json').write_text(json.dumps({
+    'custom_files': required_files, 'argon_assets': True,
+    'required_packages': (output / 'required-packages.txt').read_text().splitlines(),
+    'hardware_testing': 'pending for enhanced features'
+}, indent=2))
 for source in [*images, *manifests, *target.glob('*.buildinfo'), *target.glob('profiles.json')]:
     shutil.copy2(source, output / source.name)
 with (output / 'SHA256SUMS').open('w') as stream:

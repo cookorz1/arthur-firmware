@@ -1,4 +1,4 @@
-name: Build Arthur F50 OpenClash iStore
+name: Build Arthur WiFi Argon F50 iStore
 on:
   workflow_dispatch:
   push:
@@ -9,6 +9,9 @@ on:
       - 'versions.env'
       - 'build.sh'
       - 'files/**'
+      - 'package/**'
+      - 'tests/**'
+      - 'required-packages.txt'
 permissions:
   contents: read
 concurrency:
@@ -21,7 +24,13 @@ jobs:
     env:
       BUILD_JOBS: '2'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+      - name: Test network panel and persistent USB control
+        run: |
+          bash -n build.sh
+          find files package/arthur/files -type f \( -path '*/etc/init.d/*' -o -path '*/etc/hotplug.d/*' -o -path '*/etc/uci-defaults/*' -o -path '*/usr/libexec/*' \) -print0 | xargs -0 -r -n1 sh -n
+          python3 -m unittest discover -s tests -p 'test_*.py' -v
+          node tests/test_view.cjs
       - name: Install build dependencies
         run: |
           sudo apt-get update
@@ -34,15 +43,15 @@ jobs:
         shell: bash
         run: BUILD_ONLY=1 bash build.sh
       - name: Upload compiled firmware
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: Arthur-F50-OpenClash-iStore-${{ github.run_number }}
+          name: Arthur-Enhanced-WiFi-Argon-F50-iStore-${{ github.run_number }}
           path: output/
           if-no-files-found: error
           retention-days: 30
       - name: Upload build logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Arthur-build-logs-${{ github.run_number }}
           path: logs/

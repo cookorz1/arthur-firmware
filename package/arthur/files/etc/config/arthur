@@ -1,0 +1,2 @@
+config usb 'usb'
+	option enabled '1'
