@@ -14,22 +14,25 @@ checkout_commit() {
     git -C "$destination" checkout --detach FETCH_HEAD
     test "$(git -C "$destination" rev-parse HEAD)" = "$commit"
 }
+if [ "${BUILD_ONLY:-0}" != 1 ]; then
 test ! -e openwrt || { echo 'Use a fresh directory for this build.'; exit 1; }
 checkout_commit "$SOURCE_URL" "$SOURCE_COMMIT" openwrt
 checkout_commit "$OPENCLASH_URL" "$OPENCLASH_COMMIT" openclash-src
 checkout_commit "$ISTORE_URL" "$ISTORE_COMMIT" istore-src
 cd openwrt
+printf '\nsrc-link istore %s\n' "$TASK_ROOT/istore-src" >> feeds.conf.default
 ./scripts/feeds update -a
 ./scripts/feeds install -a
+./scripts/feeds install -f -p istore luci-app-store luci-lib-taskd luci-lib-xterm taskd
 mkdir -p package/custom
 # Replace a feed's OpenClash package if present, avoiding duplicate definitions.
-for package_name in luci-app-openclash luci-app-store luci-lib-taskd luci-lib-xterm taskd; do
-    find package/feeds -type l -name "$package_name" -delete
-done
+find package/feeds -type l -name luci-app-openclash -delete
 cp -a "$TASK_ROOT/openclash-src/luci-app-openclash" package/custom/
-cp -a "$TASK_ROOT/istore-src/luci" package/custom/istore
 cp "$TASK_ROOT/config.seed" .config
 make defconfig
+cp .config "$TASK_ROOT/logs/resolved.config"
+cp tmp/.packageinfo "$TASK_ROOT/logs/packageinfo.txt"
+cp tmp/.config-package.in "$TASK_ROOT/logs/config-package.in"
 required=(
   TARGET_qualcommax_ipq60xx_DEVICE_jdcloud_re-ss-01
   PACKAGE_luci-app-openclash PACKAGE_luci-app-store PACKAGE_luci-compat
@@ -80,6 +83,9 @@ for feed in feeds/*; do
     printf '%s %s\n' "$feed" "$(git -C "$feed" rev-parse HEAD)"
 done > "$TASK_ROOT/output/feed-revisions.txt"
 cp "$TASK_ROOT/versions.env" "$TASK_ROOT/output/versions.env"
+fi
+[ "${PREPARE_ONLY:-0}" != 1 ] || { echo 'Preparation and required-package checks completed.'; exit 0; }
+cd "$TASK_ROOT/openwrt"
 make download -j8
 make -j"${BUILD_JOBS:-$(nproc)}" || make -j1 V=s
 python3 - "$TASK_ROOT/output" <<'PY'
