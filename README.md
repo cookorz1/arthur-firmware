@@ -1,8 +1,8 @@
 # 京东云亚瑟 AX1800 Pro 定制编译
 
-状态：已于 2026-10-20 启动首次 GitHub Actions 云编译，尚未生成或实机验证固件。
+状态：已配置 GitHub Actions 自动编译。请以最新运行记录和固件产物为准；尚未实机验证。
 
-查看编译进度：https://github.com/cookorz1/arthur-firmware/actions/runs/39303738645
+查看最新编译进度：https://github.com/cookorz1/arthur-firmware/actions
 
 ## 已配置的功能
 
