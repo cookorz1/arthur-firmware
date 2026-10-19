@@ -1,0 +1,41 @@
+#!/bin/sh
+# Attach ZTE USB Ethernet interfaces to a DHCP uplink. Keep wired WAN available.
+[ "$ACTION" = add ] || exit 0
+case "$INTERFACE" in ''|lo|br-*|wlan*|phy*) exit 0 ;; esac
+path="$(readlink -f "/sys/class/net/$INTERFACE/device" 2>/dev/null)"
+[ -n "$path" ] || exit 0
+while [ "$path" != / ] && [ -n "$path" ]; do
+    [ -r "$path/idVendor" ] && break
+    path="${path%/*}"
+done
+[ -r "$path/idVendor" ] || exit 0
+[ "$(cat "$path/idVendor")" = 19d2 ] || exit 0
+[ "$(uci -q get network.f50.device)" = "$INTERFACE" ] && exit 0
+uci -q batch <<EOF
+set network.f50='interface'
+set network.f50.proto='dhcp'
+set network.f50.device='$INTERFACE'
+set network.f50.metric='10'
+commit network
+EOF
+zone=''
+i=0
+while uci -q get "firewall.@zone[$i]" >/dev/null; do
+    if [ "$(uci -q get "firewall.@zone[$i].name")" = wan ]; then
+        zone="@zone[$i]"
+        break
+    fi
+    i=$((i + 1))
+done
+if [ -n "$zone" ]; then
+    uci -q del_list "firewall.$zone.network=f50"
+    uci -q add_list "firewall.$zone.network=f50"
+    uci -q commit firewall
+fi
+logger -t f50 "ZTE USB uplink detected on $INTERFACE"
+(
+    ubus call network reload >/dev/null 2>&1
+    /etc/init.d/firewall reload >/dev/null 2>&1
+    ifup f50 >/dev/null 2>&1
+) &
+exit 0

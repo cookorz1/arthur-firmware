@@ -1,0 +1,14 @@
+#!/bin/sh
+# Run once after a clean installation. No fixed administrator password.
+uci -q batch <<'EOF'
+set system.@system[0].hostname='Arthur'
+set system.@system[0].zonename='Asia/Shanghai'
+set system.@system[0].timezone='CST-8'
+set luci.main.lang='zh_cn'
+set network.lan.ipaddr='192.168.10.1'
+set network.lan.netmask='255.255.255.0'
+commit system
+commit luci
+commit network
+EOF
+exit 0
