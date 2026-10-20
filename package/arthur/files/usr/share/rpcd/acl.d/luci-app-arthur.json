@@ -1,8 +1,8 @@
 {
   "luci-app-arthur": {
-    "description": "Show Ethernet link speeds and control the F50 USB uplink",
+    "description": "Show link speeds, diagnose uplinks and control USB tethering",
     "read": {
-      "ubus": {"arthur": ["status"]},
+      "ubus": {"arthur": ["status", "diagnose"]},
       "uci": ["arthur"]
     },
     "write": {"uci": ["arthur"]}

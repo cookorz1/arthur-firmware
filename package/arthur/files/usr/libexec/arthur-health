@@ -1,0 +1,70 @@
+#!/bin/sh
+# Manual, bounded IPv4 samples. No user-selected targets or routing mutations.
+export LC_ALL=C
+probe_dir="$(mktemp -d /tmp/arthur-health.XXXXXX)" || exit 1
+trap 'rm -rf "$probe_dir"' EXIT
+trap 'exit 1' INT TERM
+
+number_or_null() {
+    printf '%s\n' "$1" | awk '/^[0-9]+([.][0-9]+)?$/ {printf "%g", $0; ok=1} END {if (!ok) printf "null"}'
+}
+
+ping_probe() {
+    local device="$1" target="$2" output loss average
+    output="$(ping -4 -n -I "$device" -c 3 -W 1 -w 4 "$target" 2>/dev/null)"
+    loss="$(printf '%s\n' "$output" | sed -n 's/.* \([0-9.][0-9.]*\)% packet loss.*/\1/p')"
+    average="$(printf '%s\n' "$output" | sed -n 's/.*min\/avg\/max[^=]*= [^/]*\/\([^/]*\)\/.*/\1/p')"
+    printf '{"target":"%s","loss":%s,"latency":%s}' "$target" \
+        "$(number_or_null "$loss")" "$(number_or_null "$average")"
+}
+
+https_probe() {
+    local device="$1" target="$2" code error reachable=false
+    # if! forces an interface binding; it cannot fall back to interpreting a hostname.
+    code="$(curl -q -4 --noproxy '*' --interface "if!$device" --connect-timeout 2 \
+        --max-time 4 --head --silent --output /dev/null --write-out '%{http_code}' \
+        "https://$target/" 2>/dev/null)"
+    error=$?
+    case "$code" in [1-5][0-9][0-9])
+        [ "$error" != 0 ] || reachable=true ;;
+        *) code=null ;;
+    esac
+    printf '{"target":"%s","reachable":%s,"http_code":%s,"error_code":%s}' \
+        "$target" "$reachable" "$code" "$error"
+}
+
+interface_probe() {
+    # Only the parent owns temporary-directory cleanup.
+    trap - EXIT INT TERM
+    local name="$1" state device address up=false ready=false p1 p2 h1 h2
+    state="$(ubus -t 2 call "network.interface.$name" status 2>/dev/null)"
+    [ "$(printf '%s' "$state" | jsonfilter -e '@.up' 2>/dev/null)" != true ] || up=true
+    device="$(printf '%s' "$state" | jsonfilter -e '@.l3_device' 2>/dev/null)"
+    address="$(printf '%s' "$state" | jsonfilter -e '@["ipv4-address"][0].address' 2>/dev/null)"
+    case "$device" in ''|*[!a-zA-Z0-9_.:-]*) device='' ;; esac
+    case "$address" in ''|*[!0-9.]*) address='' ;; esac
+    [ "$up" != true ] || [ -z "$device" ] || [ -z "$address" ] || ready=true
+    printf '{"interface":"%s","device":"%s","address":"%s","up":%s,"ready":%s,"probes":[' \
+        "$name" "$device" "$address" "$up" "$ready"
+    if [ "$ready" = true ]; then
+        ping_probe "$device" 223.5.5.5 >"$probe_dir/$name-p1" & p1=$!
+        ping_probe "$device" 119.29.29.29 >"$probe_dir/$name-p2" & p2=$!
+        https_probe "$device" www.baidu.com >"$probe_dir/$name-h1" & h1=$!
+        https_probe "$device" www.qq.com >"$probe_dir/$name-h2" & h2=$!
+        wait "$p1" "$p2" "$h1" "$h2"
+        cat "$probe_dir/$name-p1"; printf ','; cat "$probe_dir/$name-p2"
+        printf '],"https":['
+        cat "$probe_dir/$name-h1"; printf ','; cat "$probe_dir/$name-h2"
+    else
+        printf '],"https":['
+    fi
+    printf ']}'
+}
+
+# Each uplink and each target run in parallel, with per-probe deadlines.
+interface_probe wan >"$probe_dir/wan.json" & wan_pid=$!
+interface_probe f50 >"$probe_dir/usb.json" & usb_pid=$!
+wait "$wan_pid" "$usb_pid"
+printf '{"timestamp":%s,"family":"ipv4","uplinks":[' "$(date +%s)"
+cat "$probe_dir/wan.json"; printf ','; cat "$probe_dir/usb.json"
+printf ']}\n'

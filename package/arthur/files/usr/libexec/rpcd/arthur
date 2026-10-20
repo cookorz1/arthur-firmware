@@ -58,21 +58,25 @@ usb_bus_speed() {
 }
 
 case "$1" in
-    list) printf '{"status":{}}\n' ;;
+    list) printf '{"status":{},"diagnose":{}}\n' ;;
     call)
+        if [ "$2" = diagnose ]; then
+            exec "${ARTHUR_HEALTH_SCRIPT:-/usr/libexec/arthur-health}"
+        fi
         [ "$2" = status ] || exit 1
         enabled=true
         [ "$(uci -q get arthur.usb.enabled)" != 0 ] || enabled=false
         usb_device="$(uci -q get network.f50.device)"
         case "$usb_device" in *[!a-zA-Z0-9_.:-]*) usb_device='' ;; esac
-        # A disabled F50 can be physically present before network.f50 is created.
+        # Keep network.f50 as the internal interface ID for upgrade compatibility.
         if [ -z "$usb_device" ] || [ ! -d "$SYSFS_ROOT/$usb_device" ]; then
             usb_device=''
             for entry in "$SYSFS_ROOT"/*; do
                 candidate="${entry##*/}"
                 case "$candidate" in *[!a-zA-Z0-9_.:-]*) continue ;; esac
                 path="$(usb_path "$candidate")" || continue
-                [ "$(cat "$path/idVendor" 2>/dev/null)" = 19d2 ] || continue
+                driver="$(readlink -f "$SYSFS_ROOT/$candidate/device/driver" 2>/dev/null)"
+                case "${driver##*/}" in cdc_ether|rndis_host|cdc_ncm) ;; *) continue ;; esac
                 usb_device="$candidate"
                 break
             done

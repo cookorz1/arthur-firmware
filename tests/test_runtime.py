@@ -87,13 +87,16 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         return result.stdout
 
-    def add_usb(self, vendor='19d2', name='usb0'):
+    def add_usb(self, vendor='19d2', name='usb0', driver='cdc_ether'):
         interface = self.net / name
         interface.mkdir()
-        device = self.base / 'sys/devices/usb1/1-1/1-1:1.0'
+        device = self.base / ('sys/devices/usb1/' + name + '/' + name + ':1.0')
         device.mkdir(parents=True, exist_ok=True)
         (device.parent / 'idVendor').write_text(vendor)
         (device.parent / 'speed').write_text('5000')
+        driver_path = self.base / 'sys/bus/usb/drivers' / driver
+        driver_path.mkdir(parents=True, exist_ok=True)
+        (device / 'driver').symlink_to(driver_path, target_is_directory=True)
         (interface / 'device').symlink_to(device, target_is_directory=True)
         return name
 
@@ -135,11 +138,32 @@ class RuntimeTests(unittest.TestCase):
         self.run_script(USB, 'usb0')
         self.assertNotIn('network.f50', self.data())
 
-    def test_foreign_usb_and_invalid_device_names_are_ignored(self):
-        self.add_usb(vendor='0bda')
+    def test_ethernet_adapters_and_invalid_device_names_are_ignored(self):
+        self.add_usb(vendor='0bda', driver='r8152')
         self.run_script(USB, 'usb0')
         self.run_script(USB, '../../bad;command')
         self.assertNotIn('network.f50', self.data())
+
+    def test_other_brands_shared_networks_work_and_qmi_is_not_forced_to_dhcp(self):
+        for driver in ('cdc_ether', 'rndis_host', 'cdc_ncm'):
+            name = 'tether-' + driver
+            self.add_usb(vendor='12d1', name=name, driver=driver)
+            # Keep an explicitly configured adapter stable during a second hotplug.
+            self.update({'network.f50.device': name})
+            self.run_script(USB, name)
+            self.assertEqual(self.data()['network.f50.device'], name)
+        self.add_usb(vendor='19d2', name='wwan0', driver='qmi_wwan')
+        # Remove configured matching interfaces so only the unsupported QMI candidate remains.
+        self.update({'network.f50.device': ''})
+        self.run_script(USB, 'wwan0')
+        self.assertEqual(self.data()['network.f50.device'], '')
+
+    def test_second_tether_does_not_steal_configured_working_uplink(self):
+        self.add_usb(name='usb0')
+        self.add_usb(vendor='12d1', name='usb1', driver='rndis_host')
+        self.update({'network.f50.device': 'usb0'})
+        self.run_script(USB, 'usb1')
+        self.assertEqual(self.data()['network.f50.device'], 'usb0')
 
     def test_link_report_distinguishes_1000_100_disconnected_and_missing(self):
         self.add_port('wan', 1, 1000)
@@ -230,7 +254,7 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(data['usb_port']['speed'], 1000)
         self.assertEqual(data['usb_port']['device'], 'usb0')
         (interface / 'speed').write_text('-1')
-        (self.base / 'sys/devices/usb1/1-1/speed').write_text('480')
+        (self.base / 'sys/devices/usb1/usb0/speed').write_text('480')
         data = json.loads(self.run_script(STATUS, 'call', 'status'))
         self.assertEqual(data['usb_bus_speed'], 480)
         self.assertIsNone(data['usb_port']['speed'])
@@ -241,7 +265,7 @@ class RuntimeTests(unittest.TestCase):
         self.assertFalse(data['usb_port']['present'])
         self.assertIsNone(data['usb_bus_speed'])
         self.add_usb()
-        (self.base / 'sys/devices/usb1/1-1/speed').write_text('unknown')
+        (self.base / 'sys/devices/usb1/usb0/speed').write_text('unknown')
         data = json.loads(self.run_script(STATUS, 'call', 'status'))
         self.assertTrue(data['usb_present'])
         self.assertIsNone(data['usb_bus_speed'])

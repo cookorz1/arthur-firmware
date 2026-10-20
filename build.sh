@@ -127,7 +127,7 @@ if len(roots) != 1:
     raise SystemExit('Expected one assembled firmware root for custom feature verification')
 root = roots[0]
 required_files = [
-    'usr/libexec/rpcd/arthur', 'usr/libexec/arthur-usb', 'etc/init.d/arthur',
+    'usr/libexec/rpcd/arthur', 'usr/libexec/arthur-usb', 'usr/libexec/arthur-health', 'etc/init.d/arthur',
     'etc/hotplug.d/net/90-f50', 'etc/config/arthur',
     'etc/uci-defaults/99-arthur-wireless', 'etc/uci-defaults/zz-arthur-custom',
     'www/luci-static/resources/view/arthur/network.js',
