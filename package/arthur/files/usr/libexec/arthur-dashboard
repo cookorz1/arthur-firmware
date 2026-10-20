@@ -7,6 +7,7 @@ safe_device() { case "$1" in ''|*[!a-zA-Z0-9_.:-]*) return 1 ;; esac; }
 counter() { local value; value="$(cat "$1" 2>/dev/null)"; case "$value" in ''|*[!0-9]*) printf null ;; *) printf '%s' "$value" ;; esac; }
 json_init
 json_add_double sample_time "$(awk '{print $1+0}' "$PROC/uptime")"
+json_add_string local_time "$(date '+%Y-%m-%d %H:%M')"
 json_add_object cpu
 set -- $(awk '/^cpu / {sum=0; for(i=2;i<=9;i++)sum+=$i; print sum, $5+$6; exit}' "$PROC/stat")
 json_add_double total "${1:-0}"

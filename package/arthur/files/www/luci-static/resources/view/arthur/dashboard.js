@@ -98,7 +98,7 @@ return view.extend({
         this.storage = this.metric('系统存储', 'storage', 'purple');
         var stats = E('div', {'class': 'arthur-stats'}, [internet, this.devices.node, this.cpu.node, this.memory.node, this.storage.node]);
         var select = E('select', {'aria-label': '流量统计接口', 'class': 'arthur-pill'}, [E('option', {value: 'all'}, '全部上联'), E('option', {value: 'wan'}, 'WAN'), E('option', {value: 'f50'}, 'USB')]);
-        select.addEventListener('change', function() {self.selection = select.value; self.history = []; self.download.textContent = '↓ —'; self.upload.textContent = '↑ —'; self.updateChart();});
+        select.addEventListener('change', function() {self.selection = select.value; self.history = []; self.chartDown.textContent = '—'; self.chartUp.textContent = '—'; self.chartMessage.textContent = '正在切换接口，等待下一次采样。'; self.updateChart();});
         this.chartDown = E('b', {}, '—'); this.chartUp = E('b', {}, '—');
         this.chart = svg('svg', {viewBox: '0 0 640 210', 'class': 'arthur-chart', role: 'img', 'aria-label': '上联实时下载与上传流量曲线'});
         this.chartMessage = E('div', {'class': 'arthur-chart-message'}, '正在采样，约 3 秒后显示实时速率');
@@ -157,8 +157,9 @@ return view.extend({
     update: function(result) {
         var snapshot = result[0], ports = result[1], performance = result[2], info = result[3];
         var speed = sampleRates(this.previous, snapshot, this.selection);
-        this.download.textContent = '↓ ' + rate(speed && speed.rx);
-        this.upload.textContent = '↑ ' + rate(speed && speed.tx);
+        var aggregate = sampleRates(this.previous, snapshot, 'all');
+        this.download.textContent = '↓ ' + rate(aggregate && aggregate.rx);
+        this.upload.textContent = '↑ ' + rate(aggregate && aggregate.tx);
         var active = (snapshot.uplinks || []).filter(function(u) {return u.ready;});
         var names = active.map(function(u) {return u.name === 'f50' ? 'USB' : 'WAN';}).join(' + ');
         this.internetState.textContent = active.length ? '● 上联已就绪' : '● 等待上联';
@@ -166,12 +167,12 @@ return view.extend({
         this.internetNote.textContent = active.length ? names + ' · 接口实际流量' : '连接宽带或随身 WiFi';
         this.heroStatus.textContent = active.length ? '网络管理，从容有序。' + names + ' 上联已获取地址。' : '管理中心已就绪，等待连接宽带或随身 WiFi。';
         this.uptime.textContent = duration(info.uptime);
-        this.clock.textContent = finite(info.localtime) ? new Date(info.localtime * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' · 路由器时间' : '';
+        this.clock.textContent = snapshot.local_time ? snapshot.local_time + ' · 路由器时间' : '';
         var clients = snapshot.clients || [];
         this.devices.value.textContent = clients.length + ' 台';
         this.devices.note.textContent = 'IPv4 邻居记录，含缓存';
         var cpu = null;
-        if (this.previous && snapshot.cpu && this.previous.cpu) {
+        if (this.previous && snapshot.sample_time - this.previous.sample_time >= 1 && snapshot.sample_time - this.previous.sample_time <= 20 && snapshot.cpu && this.previous.cpu) {
             var total = snapshot.cpu.total - this.previous.cpu.total;
             var idle = snapshot.cpu.idle - this.previous.cpu.idle;
             if (finite(total) && total > 0 && finite(idle) && idle <= total) cpu = percent(total - idle, total);
@@ -184,7 +185,7 @@ return view.extend({
         var storage = snapshot.storage || {}, storagePct = percent(storage.used_kib, storage.total_kib);
         this.storage.value.textContent = storagePct == null ? '—' : storagePct + '%'; this.storage.meter.style.width = (storagePct || 0) + '%';
         this.storage.note.textContent = capacity(storage.used_kib) + ' / ' + capacity(storage.total_kib) + ' · Overlay';
-        if (this.previous && snapshot.sample_time - this.previous.sample_time > 20) this.history = [];
+        if (!speed) this.history = [];
         if (speed) this.history.push({time: snapshot.sample_time, rx: speed.rx, tx: speed.tx});
         this.history = this.history.filter(function(p) {return snapshot.sample_time - p.time <= 180;}).slice(-61);
         this.chartDown.textContent = rate(speed && speed.rx); this.chartUp.textContent = rate(speed && speed.tx);
@@ -203,10 +204,10 @@ return view.extend({
         if (clients.length > 6) this.clientRows.appendChild(E('tr', {}, [E('td', {colspan: 3, 'class': 'arthur-muted'}, '首页显示前 6 条，完整记录请查看状态页面')]));
         this.topologyState.textContent = names || '等待连接'; this.topologyUplink.textContent = active.length ? '上联已获取地址' : '上联未就绪';
         this.topologyWan.textContent = active.some(function(u) {return u.name === 'wan';}) ? '已获地址' : '未就绪';
-        this.topologyUsb.textContent = !ports.usb_enabled ? '已关闭' : ports.usb_up ? '已获地址' : ports.usb_present ? '正在连接' : '等待 USB';
+        this.topologyUsb.textContent = !ports.usb_enabled ? '已关闭' : active.some(function(u) {return u.name === 'f50';}) ? '已获地址' : ports.usb_present ? '正在连接' : '等待 USB';
         this.topologyLan.textContent = (ports.ports || []).filter(function(p) {return /^LAN/.test(p.label) && p.link;}).length + ' 个端口已连接';
         this.proxyState.textContent = performance.proxy_guard ? performance.error ? '请检查保护状态' : performance.ecm_loaded && (performance.ecm_stop4 !== 1 || performance.ecm_stop6 !== 1) ? '正在保护' : '代理保护中' : '未启用';
-        this.proxyState.className = performance.proxy_guard ? 'arthur-good' : 'arthur-muted';
+        this.proxyState.className = performance.error ? 'arthur-warning' : performance.proxy_guard ? 'arthur-good' : 'arthur-muted';
         this.bbrState.textContent = (performance.tcp_cc || '未知').toUpperCase();
         this.nssState.textContent = performance.error ? '请检查' : performance.reason === 'openclash' ? '代理保护中' : performance.reason === 'qos' ? 'QoS 保护中' : performance.reason === 'steering' ? '多核转发保护' : performance.reason === 'off' ? '已关闭' : performance.ecm_loaded && performance.ecm_stop4 === 0 && performance.ecm_stop6 === 0 ? '可加速' : '未就绪';
         this.nssState.className = performance.error ? 'arthur-warning' : 'arthur-muted';

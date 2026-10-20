@@ -8,11 +8,13 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
     try {
         const page=await browser.newPage({viewport:{width:1536,height:1100},deviceScaleFactor:1});
-        const errors=[];page.on('pageerror',e=>errors.push(e.message));
+        const errors=[];page.on('pageerror',e=>{errors.push(e.message);console.error('Page error:',e.message);});
+        page.on('console',m=>{if(m.type()==='error')console.error('Browser console:',m.text());});
         const dir=path.resolve('logs/ui');
         const open=async name=>page.goto(pathToFileURL(path.join(dir,name+'.html')).href);
         await open('dashboard');
-        await page.waitForFunction(()=>window.previewReady===true);
+        await page.waitForFunction(()=>window.previewReady===true || window.previewError);
+        assert.equal(await page.evaluate(()=>window.previewError || ''),'');
         assert.equal(errors.length,0,errors.join('\n'));
         await page.locator('.arthur-dashboard').screenshot({path:path.join(dir,'dashboard-content.png')});
         await page.screenshot({path:path.join(dir,'dashboard-desktop.png'),fullPage:true});

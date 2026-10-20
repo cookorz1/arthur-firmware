@@ -1,5 +1,5 @@
 {# Arthur mountain skin. Uses the original LuCI username/password POST contract. #}
-{% include("themes/" + theme + "/header_login") %}
+{% include("themes/" + theme + "/out_header_login") %}
 <main class="arthur-login">
     <section class="arthur-login-scene" aria-label="雪山风景">
         <a class="arthur-logo" href="/"> <span class="arthur-mark" aria-hidden="true"></span> jdy-cookorz</a>

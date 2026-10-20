@@ -25,7 +25,7 @@ window.E = function(tag, attrs, children) {
 window._ = t=>t;
 window.L = {url:(...p)=>'/cgi-bin/luci/'+p.join('/')};
 window.view={extend:o=>o};window.poll={add:f=>{window.previewPoll=f;}};
-window.ui={menu:{load:async()=>MENU,getChildren:o=>Object.values(o.children||{})}};
+window.ui={menu:{load:async()=>(MENU),getChildren:o=>Object.values(o.children||{})}};
 window.baseclass={extend:o=>o};
 var tick=0;
 window.rpc={declare:spec=>async()=>{
@@ -50,7 +50,7 @@ boot='''
  document.querySelector('a.showSide').addEventListener('click',()=>document.querySelector('#mainmenu').classList.toggle('active'));
  for(var i=0;i<55;i++){tick++;await window.previewPoll();}
  window.previewReady=true;
-})().catch(e=>{document.body.appendChild(E('pre',{},e.stack));console.error(e);});
+})().catch(e=>{window.previewError=e.stack;document.body.appendChild(E('pre',{},e.stack));console.error(e);});
 '''.replace('DASHBOARD',json.dumps(dashboard,ensure_ascii=False)).replace('SHELL',json.dumps(shell,ensure_ascii=False))
 (preview/'dashboard.html').write_text(head+body+'<script>'+harness+boot+'</script></body></html>',encoding='utf-8')
 login=(repo/'package/arthur/theme/sysauth.ut').read_text(encoding='utf-8')
