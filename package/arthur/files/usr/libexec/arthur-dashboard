@@ -1,0 +1,74 @@
+#!/bin/sh
+# Read-only snapshot. No scheduled history, probes, network reloads or config writes.
+. "${ARTHUR_JSHN_LIB:-/usr/share/libubox/jshn.sh}"
+PROC="${ARTHUR_PROC_ROOT:-/proc}"
+SYS="${ARTHUR_SYSFS_ROOT:-/sys/class/net}"
+safe_device() { case "$1" in ''|*[!a-zA-Z0-9_.:-]*) return 1 ;; esac; }
+counter() { local value; value="$(cat "$1" 2>/dev/null)"; case "$value" in ''|*[!0-9]*) printf null ;; *) printf '%s' "$value" ;; esac; }
+json_init
+json_add_double sample_time "$(awk '{print $1+0}' "$PROC/uptime")"
+json_add_object cpu
+set -- $(awk '/^cpu / {sum=0; for(i=2;i<=9;i++)sum+=$i; print sum, $5+$6; exit}' "$PROC/stat")
+json_add_double total "${1:-0}"
+json_add_double idle "${2:-0}"
+json_close_object
+json_add_object storage
+set -- $(df -Pk /overlay 2>/dev/null | awk 'NR==2 {print $2,$3}')
+if [ -n "$1" ] && [ -n "$2" ]; then
+    json_add_double total_kib "$1"; json_add_double used_kib "$2"
+else
+    json_add_null total_kib; json_add_null used_kib
+fi
+json_close_object
+json_add_array uplinks
+for interface in wan f50; do
+    status="$(ubus call "network.interface.$interface" status 2>/dev/null)"
+    device="$(jsonfilter -s "$status" -e '@.l3_device' 2>/dev/null)"
+    safe_device "$device" || device=''
+    up="$(jsonfilter -s "$status" -e '@.up' 2>/dev/null)"
+    address="$(jsonfilter -s "$status" -e '@["ipv4-address"][0].address' 2>/dev/null)"
+    address6="$(jsonfilter -s "$status" -e '@["ipv6-address"][0].address' 2>/dev/null)"
+    json_add_object
+    json_add_string name "$interface"
+    json_add_string device "$device"
+    if [ -n "$device" ] && [ "$up" = true ] && { [ -n "$address" ] || [ -n "$address6" ]; }; then
+        json_add_boolean ready 1
+    else
+        json_add_boolean ready 0
+    fi
+    json_add_string address "$address"
+    for direction in rx tx; do
+        value="$(counter "$SYS/$device/statistics/${direction}_bytes")"
+        if [ -n "$device" ] && [ "$value" != null ]; then
+            json_add_double "${direction}_bytes" "$value"
+        else
+            json_add_null "${direction}_bytes"
+        fi
+    done
+    json_close_object
+done
+json_close_array
+status="$(ubus call network.interface.lan status 2>/dev/null)"
+lan="$(jsonfilter -s "$status" -e '@.l3_device' 2>/dev/null)"
+safe_device "$lan" || lan=''
+json_add_string lan_device "$lan"
+json_add_array clients
+if [ -n "$lan" ]; then
+    # Only this LAN bridge; STALE entries are explicitly labelled as cache in the UI.
+    neighbors="$(ip -4 neigh show dev "$lan" 2>/dev/null | head -n 64)"
+    while read -r address lladdr mac state rest; do
+        [ "$lladdr" = lladdr ] || continue
+        case "$state" in REACHABLE|STALE|DELAY|PROBE|PERMANENT) ;; *) continue ;; esac
+        hostname="$(awk -v mac="$mac" 'tolower($2)==tolower(mac) {if($4!="*")print $4; exit}' "${ARTHUR_DHCP_LEASES:-/tmp/dhcp.leases}" 2>/dev/null)"
+        json_add_object
+        json_add_string address "$address"
+        json_add_string mac "$mac"
+        json_add_string state "$state"
+        json_add_string hostname "$hostname"
+        json_close_object
+    done <<EOF
+$neighbors
+EOF
+fi
+json_close_array
+json_dump

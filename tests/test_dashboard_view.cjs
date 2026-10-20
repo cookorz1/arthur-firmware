@@ -1,0 +1,27 @@
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const code = fs.readFileSync(require('node:path').join(__dirname, '../package/arthur/files/www/luci-static/resources/view/arthur/dashboard.js'), 'utf8');
+const view = vm.runInNewContext('(function(){'+code+'})()', {view:{extend:o=>o},rpc:{declare:()=>()=>{}},poll:{},ui:{},console});
+function sample(time, rx=100, tx=200, device='wan') {return {sample_time:time,uplinks:[{name:'wan',device,ready:true,rx_bytes:rx,tx_bytes:tx}]};}
+const before=sample(100),after=sample(103,600100,150200);
+assert.equal(view.sampleRates(null,after,'all'),null);
+let r=view.sampleRates(before,after,'all');
+assert.equal(r.rx,1600000);assert.equal(r.tx,400000);
+assert.equal(view.sampleRates(before,after,'f50'),null);
+assert.equal(view.sampleRates(before,sample(103,10,20),'all'),null);
+assert.equal(view.sampleRates(before,sample(103,600100,150200,'usb0'),'all'),null);
+assert.equal(view.sampleRates(before,sample(130,600100,150200),'all'),null);
+assert.equal(view.sampleRates(before,sample(99,600100,150200),'all'),null);
+const down=sample(103);down.uplinks[0].ready=false;
+assert.equal(view.sampleRates(before,down,'all'),null);
+const unknown=sample(103);unknown.uplinks[0].rx_bytes=null;
+assert.equal(view.sampleRates(before,unknown,'all'),null);
+const duplicate=sample(103,600100,150200);duplicate.uplinks.push({...duplicate.uplinks[0],name:'f50'});
+assert.equal(view.sampleRates(before,duplicate,'all').rx,1600000);
+const bothBefore=sample(100),bothAfter=sample(103,600100,150200);
+bothBefore.uplinks.push({name:'f50',device:'usb0',ready:true,rx_bytes:0,tx_bytes:0});
+bothAfter.uplinks.push({name:'f50',device:'usb0',ready:true,rx_bytes:300000,tx_bytes:150000});
+assert.equal(view.sampleRates(bothBefore,bothAfter,'all').rx,2400000);
+assert.equal(view.sampleRates(bothBefore,bothAfter,'f50').tx,400000);
+console.log('Dashboard rates: initial sample, true WAN/USB deltas, selection, resets, reconnects, gaps and duplicate devices passed.');

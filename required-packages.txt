@@ -5,6 +5,7 @@ luci-mod-network
 luci-theme-argon
 luci-app-argon-config
 luci-app-arthur
+jshn
 kmod-ath11k-ahb
 ath11k-firmware-ipq6018
 ipq-wifi-jdcloud_re-ss-01

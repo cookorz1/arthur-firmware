@@ -54,6 +54,7 @@ for symbol in "${required[@]}"; do
 done
 cp -a "$TASK_ROOT/files" .
 python3 "$TASK_ROOT/scripts/integrate_performance.py" integrate . "${GITHUB_SHA:-local-$(date -u +%Y%m%d%H%M%S)}"
+python3 "$TASK_ROOT/scripts/integrate_theme.py" . "$TASK_ROOT" "${GITHUB_SHA:-local-$(date -u +%Y%m%d%H%M%S)}"
 sh -n package/custom/luci-app-openclash/root/etc/init.d/openclash
 # Initialise root/password only in the clean image; retained sysupgrade settings win.
 python3 "$TASK_ROOT/scripts/prepare_defaults.py" package/base-files/files/etc/shadow files/etc/shadow
@@ -134,12 +135,15 @@ root = roots[0]
 required_files = [
     'usr/libexec/rpcd/arthur', 'usr/libexec/arthur-usb', 'usr/libexec/arthur-health', 'etc/init.d/arthur',
     'usr/libexec/arthur-performance', 'usr/libexec/arthur-performance-watch',
+    'usr/libexec/arthur-dashboard',
     'etc/init.d/arthur-performance', 'etc/init.d/qca-nss-ecm',
     'etc/uci-defaults/91-arthur-performance', 'etc/arthur-build',
     'etc/hotplug.d/net/90-f50', 'etc/config/arthur',
     'etc/uci-defaults/99-arthur-wireless', 'etc/uci-defaults/zz-arthur-custom',
     'www/luci-static/resources/view/arthur/network.js',
     'www/luci-static/resources/view/arthur/performance.js',
+    'www/luci-static/resources/view/arthur/dashboard.js',
+    'www/luci-static/arthur/theme.css', 'www/luci-static/arthur/mountain.png',
     'usr/share/luci/menu.d/luci-app-arthur.json',
     'usr/share/rpcd/acl.d/luci-app-arthur.json'
 ]
@@ -148,6 +152,15 @@ for relative in required_files:
         raise SystemExit('Custom feature missing from firmware root: ' + relative)
 if not (root / 'www/luci-static/argon').is_dir():
     raise SystemExit('Argon theme assets missing from firmware root')
+templates = root / 'usr/share/ucode/luci/template/themes/argon'
+for name in ('header.ut', 'header_login.ut'):
+    if '/luci-static/arthur/theme.css?v=' not in (templates / name).read_text():
+        raise SystemExit('Arthur skin missing from ' + name)
+login = (templates / 'sysauth.ut').read_text()
+if 'arthur-login' not in login or 'luci_username' not in login or 'luci_password' not in login:
+    raise SystemExit('Arthur login template or LuCI authentication form missing')
+if not list((root / 'www/luci-static/resources').glob('arthur-shell-*.js')):
+    raise SystemExit('Versioned Arthur navigation shell missing')
 menu = json.loads((root / 'usr/share/luci/menu.d/luci-app-arthur.json').read_text())
 for entry in menu.values():
     view = entry.get('action', {}).get('path', '')

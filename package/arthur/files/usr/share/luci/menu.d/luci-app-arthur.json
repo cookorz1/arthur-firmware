@@ -1,4 +1,10 @@
 {
+  "admin/overview": {
+    "title": "首页",
+    "order": 1,
+    "action": {"type": "view", "path": "arthur/dashboard"},
+    "depends": {"acl": ["luci-app-arthur"]}
+  },
   "admin/network/arthur": {
     "title": "亚瑟网络面板",
     "order": 5,

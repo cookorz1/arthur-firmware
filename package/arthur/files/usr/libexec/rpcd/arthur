@@ -58,12 +58,13 @@ usb_bus_speed() {
 }
 
 case "$1" in
-    list) printf '{"status":{},"diagnose":{},"performance":{},"release_memory":{}}\n' ;;
+    list) printf '{"status":{},"diagnose":{},"performance":{},"release_memory":{},"dashboard":{}}\n' ;;
     call)
         if [ "$2" = diagnose ]; then
             exec "${ARTHUR_HEALTH_SCRIPT:-/usr/libexec/arthur-health}"
         fi
         case "$2" in
+            dashboard) exec "${ARTHUR_DASHBOARD_SCRIPT:-/usr/libexec/arthur-dashboard}" ;;
             performance) exec "${ARTHUR_PERF_SCRIPT:-/usr/libexec/arthur-performance}" status ;;
             release_memory) exec "${ARTHUR_PERF_SCRIPT:-/usr/libexec/arthur-performance}" release_memory ;;
         esac

@@ -1,0 +1,41 @@
+{# Arthur mountain skin. Uses the original LuCI username/password POST contract. #}
+{% include("themes/" + theme + "/header_login") %}
+<main class="arthur-login">
+    <section class="arthur-login-scene" aria-label="雪山风景">
+        <a class="arthur-logo" href="/"> <span class="arthur-mark" aria-hidden="true"></span> jdy-cookorz</a>
+        <div class="arthur-login-copy"><span class="arthur-eyebrow">YOUR NETWORK. YOUR SPACE.</span>
+            <h1>连接生活的<br>每一种可能。</h1><p>让网络管理，简单从容。</p>
+        </div>
+        <small>京东云亚瑟 · AX1800 Pro</small>
+    </section>
+    <section class="arthur-login-panel">
+        <div class="arthur-login-card">
+            <span class="arthur-login-badge">路由器管理中心</span>
+            <h2>欢迎回来</h2><p class="arthur-muted">登录 jdy-cookorz，掌握你的网络。</p>
+            <form method="post" action="{{ http.getenv('REQUEST_URI') }}">
+                {% if (fuser): %}<div class="alert-message error" role="alert">{{ _('Invalid username and/or password! Please try again.') }}</div>{% endif %}
+                <label for="cbi-input-user">管理账号</label>
+                <input id="cbi-input-user" type="text" name="luci_username" autocomplete="username" required value="{{ entityencode(duser, true) }}">
+                <label for="cbi-input-password">管理密码</label>
+                <div class="arthur-password-field">
+                    <input id="cbi-input-password" type="password" name="luci_password" autocomplete="current-password" autofocus>
+                    <button type="button" id="arthur-password-toggle" aria-label="显示密码" aria-pressed="false">显示</button>
+                </div>
+                <button type="submit" class="arthur-login-submit">登录管理中心 <span aria-hidden="true">→</span></button>
+            </form>
+            <p class="arthur-login-note">使用路由器管理员账号登录</p>
+        </div>
+        <small class="arthur-login-footer">jdy-cookorz · Powered by LuCI / LibWrt</small>
+    </section>
+</main>
+<script>
+document.getElementById('arthur-password-toggle').addEventListener('click', function() {
+    var input = document.getElementById('cbi-input-password');
+    var show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    this.textContent = show ? '隐藏' : '显示';
+    this.setAttribute('aria-label', show ? '隐藏密码' : '显示密码');
+    this.setAttribute('aria-pressed', String(show));
+});
+</script>
+</body></html>

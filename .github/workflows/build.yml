@@ -34,6 +34,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_*.py' -v
           node tests/test_view.cjs
           node tests/test_performance_view.cjs
+          node tests/test_dashboard_view.cjs
       - name: Install build dependencies
         run: |
           sudo apt-get update
@@ -42,7 +43,23 @@ jobs:
       - name: Prepare source and verify required packages
         shell: bash
         run: PREPARE_ONLY=1 bash build.sh
+      - name: Render and verify dashboard and login
+        shell: bash
+        run: |
+          npm install --no-save --prefix "$RUNNER_TEMP/arthur-ui" playwright@1.56.1
+          "$RUNNER_TEMP/arthur-ui/node_modules/.bin/playwright" install --with-deps chromium
+          python3 scripts/preview_theme.py openwrt/feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
+          PLAYWRIGHT_MODULE="$RUNNER_TEMP/arthur-ui/node_modules/playwright" node tests/render_theme.cjs
+      - name: Upload interface previews
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Arthur-interface-previews-${{ github.run_number }}
+          path: logs/ui/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Compile firmware
+        if: success()
         shell: bash
         run: BUILD_ONLY=1 bash build.sh
       - name: Upload compiled firmware
