@@ -1,0 +1,8 @@
+#!/bin/sh
+# Safety reconciliation, not a memory cleaner or a speed-test loop.
+trap 'exit 0' INT TERM
+while :; do
+    /usr/libexec/arthur-performance reconcile >/dev/null 2>&1
+    sleep 5 &
+    wait "$!"
+done

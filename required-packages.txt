@@ -11,6 +11,14 @@ ipq-wifi-jdcloud_re-ss-01
 wpad-openssl
 iwinfo
 ethtool-full
+kmod-tcp-bbr
+coreutils-timeout
+kmod-sched
+zram-swap
+kmod-zram
+kmod-qca-nss-drv
+kmod-qca-nss-ecm
+nss-firmware-ipq60xx
 kmod-usb-net-cdc-ether
 kmod-usb-net-rndis
 kmod-usb-net-cdc-ncm

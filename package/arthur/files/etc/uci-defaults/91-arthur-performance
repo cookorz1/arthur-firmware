@@ -1,0 +1,18 @@
+#!/bin/sh
+# Fill new options during upgrades without replacing existing USB settings.
+uci -q get arthur.performance >/dev/null || uci -q set arthur.performance=performance
+uci -q get arthur.performance.tcp_cc >/dev/null || uci -q set arthur.performance.tcp_cc=bbr
+uci -q get arthur.performance.nss_mode >/dev/null || uci -q set arthur.performance.nss_mode=auto
+uci -q get arthur.performance.zram_enabled >/dev/null || uci -q set arthur.performance.zram_enabled=1
+uci -q commit arthur
+uci -q get system.@system[0].zram_size_mb >/dev/null || uci -q set system.@system[0].zram_size_mb=128
+uci -q get system.@system[0].zram_comp_algo >/dev/null || uci -q set system.@system[0].zram_comp_algo=lzo-rle
+uci -q commit system
+# NSS and fw4 flowtable must not race for the same forwarded flows.
+uci -q set firewall.@defaults[0].flow_offloading=0
+uci -q set firewall.@defaults[0].flow_offloading_hw=0
+uci -q commit firewall
+uci -q set network.globals.packet_steering=0
+uci -q commit network
+/etc/init.d/arthur-performance enable
+exit 0

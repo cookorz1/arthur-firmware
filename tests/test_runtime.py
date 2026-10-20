@@ -132,6 +132,13 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(self.data()['network.f50.auto'], '1')
         self.assertIn('ifup f50', self.events.read_text())
 
+    def test_reapplying_other_settings_does_not_restart_an_already_up_usb_uplink(self):
+        self.add_usb()
+        self.run_script(USB)
+        first = self.events.read_text().count('ifup f50')
+        self.run_script(USB)
+        self.assertEqual(self.events.read_text().count('ifup f50'), first)
+
     def test_disabled_before_first_connection_does_not_create_uplink(self):
         self.add_usb()
         self.update({'arthur.usb.enabled': '0'})

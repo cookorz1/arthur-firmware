@@ -1,0 +1,8 @@
+#!/bin/sh /etc/rc.common
+# Arthur owns routing offload policy. Do not use the upstream conntrack-flushing path.
+START=26
+STOP=88
+
+start() { /usr/libexec/arthur-performance reconcile; }
+reload() { /usr/libexec/arthur-performance reconcile; }
+stop() { /usr/libexec/arthur-performance protect; }

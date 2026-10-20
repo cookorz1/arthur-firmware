@@ -4,5 +4,11 @@
     "order": 5,
     "action": {"type": "view", "path": "arthur/network"},
     "depends": {"acl": ["luci-app-arthur"]}
+  },
+  "admin/network/arthur-performance": {
+    "title": "加速与内存",
+    "order": 6,
+    "action": {"type": "view", "path": "arthur/performance"},
+    "depends": {"acl": ["luci-app-arthur"]}
   }
 }

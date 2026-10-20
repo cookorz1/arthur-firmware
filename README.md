@@ -2,9 +2,9 @@
 
 [![Build firmware](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml/badge.svg)](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml)
 
-面向 **京东云亚瑟 AX1800 Pro / JDCloud RE-SS-01** 的 OpenWrt 定制固件，基于 **LibWrt 25.12-nss**。集成双频 Wi-Fi、Argon 中文主题、iStore 应用商店、OpenClash、F50 USB 上网，以及 WAN/LAN 端口协商速率面板，方便日常使用和维护。
+面向 **京东云亚瑟 AX1800 Pro / JDCloud RE-SS-01** 的 OpenWrt 定制固件，基于 **LibWrt 25.12-nss**。集成双频 Wi-Fi、Argon 中文主题、iStore 应用商店、OpenClash、随身 WiFi USB 上网、网络质量检测，以及 BBR / NSS 兼容管理和内存面板。
 
-**当前进度：** 上版已编译并刷机，用户反馈无线网络无法被发现。本次修订初始化顺序、双频就绪检查、信道及加密默认值，并增加 USB 网卡与 USB 总线速率。构建状态以 [最新 Actions 运行](https://github.com/cookorz1/arthur-firmware/actions) 为准；无线广播及连接仍需刷机实测。
+**当前进度：** 网络与随身 WiFi 主功能已有用户反馈可用。本次增加“加速与内存”页面、OpenClash 生命周期加速保护、ZRAM 和手动缓存回收，并为页面资源加入独立构建版本，避免升级后仍加载旧面板。构建状态以 [最新 Actions 运行](https://github.com/cookorz1/arthur-firmware/actions) 为准；优化效果仍需实机对照测试。
 
 ## 主要功能
 
@@ -18,7 +18,7 @@
 | 端口协商速率 | “网络 → 亚瑟网络面板”分别显示 WAN、LAN1、LAN2、LAN3、USB 网卡链路速率，并单独显示 USB 总线连接速率，每 3 秒刷新 |
 | USB 上网开关 | 同一页面开启或关闭随身 WiFi 上网，保存并应用后生效；关闭状态在重启、重新插拔后保持 |
 | 网络质量检测 | 手动分别检测 WAN / USB 的 IPv4 接入、HTTPS 可达性、两测点延迟与丢包；不伪造蜂窝信号格数或光功率 |
-| NSS | 沿用 LibWrt 的 NSS 默认驱动和固件配置；代理流量是否被加速取决于具体工作模式 |
+| 加速与内存 | BBR / Cubic 切换、NSS 自动兼容控制、128 MiB ZRAM、内存可用量、代理进程占用及手动缓存回收 |
 
 端口速率从物理网口的 sysfs / ethtool 状态读取。未连接的端口显示“未连接”；无法读取实际速率时显示“无法读取”，不会把千兆接口能力当作当前协商速率。该数值也不等于宽带测速结果。
 
@@ -96,6 +96,31 @@ logread | grep -Ei 'ath11k|hostapd|wireless|arthur' | tail -n 100
 - **重新插拔 / 重启：** 使用已保存的开关状态。
 - **其他网络：** 保留有线 WAN 与 LAN 设置；有线 WAN 的路由优先级仍按当前接口配置决定。
 
+## 加速与内存管理
+
+入口：**网络 → 加速与内存**。保留亚瑟的 IPQ6018 / NSS 11.4 和 ath11k 512 MiB 内存配置，不超频，不放大 TCP 缓冲区或连接跟踪上限。
+
+| 功能 | 默认值与实际范围 |
+| --- | --- |
+| TCP 拥塞控制 | BBR；可切回 Cubic。影响路由器自身与代理出口的内核 TCP 新连接，不改变手机/电脑的 TCP 算法，不为 UDP/QUIC 加速 |
+| 默认队列 | FQ；只设置新队列默认值，不替换已有 mq、CAKE、HTB 或其他 SQM 树 |
+| NSS 转发 | 自动兼容；OpenClash 配置已启用或进程仍在时，暂停 IPv4/IPv6 ECM 转发加速并清退硬件加速规则，保留连接跟踪表 |
+| 代理关闭后 | OpenClash 配置关闭且进程退出、SQM/QoS 未启用、软件包分载未开启时恢复 NSS。可在页面显式关闭 NSS，不提供绕过兼容保护的强制开关 |
+| 无线 NSS | 保留原生驱动，独立显示状态；NSS 无法代替代理加解密。USB 流量是否支持 NSS 由驱动和连接类型决定，页面连接计数是全机统计 |
+| 冲突管理 | fw4 软件/硬件流量卸载保持关闭；NSS 不与其叠加。SQM/QoS 或软件包分载开启时暂停 NSS，保留对应功能 |
+| ZRAM | 全新安装默认 128 MiB、lzo-rle 压缩交换，按需占用 RAM；保留已有自定义大小。开启/关闭下次重启生效，不在低内存时强制 swapoff |
+| 手动释放缓存 | 同步数据后回收干净缓存与可回收 Slab，展示实际前后可用量；60 秒间隔，不结束进程、不删除临时目录，不清空交换或连接 |
+
+OpenClash 启动和重载前有同步保护钩子，停止过程中仍保持保护。控制失败时阻止继续启动代理并显示日志，避免静默绕过规则；后台每 5 秒检查配置和进程状态。默认自动模式优先保证 OpenClash 规则经过 CPU；并不承诺代理开启时仍能使用 NSS 路由转发加速。
+
+NSS 上游原启动/停止脚本会写入连接跟踪清空节点，本固件使用独立控制入口替代。改变性能设置不会为已连接的 USB 上网接口重复执行 ifup。BBR 不承诺提高运营商带宽；NSS 连接数、实际算法和内存值均从内核读取，无法读取时显示未就绪或未知。
+
+Linux 会自动回收缓存，内存占用高不等于内存耗尽，应关注 **MemAvailable**。手动缓存回收不能释放 OpenClash 规则或程序堆内存，频繁回收会增加 CPU/I/O；没有设置定时清理。ZRAM 是压缩内存，不是额外物理内存，也不保证大规则集永不触发 OOM。
+
+所有 feeds 固定到前一成功构建的提交（`feeds.lock.json`），主源码与插件提交仍见 `versions.env`。每次构建产生独立 LuCI 页面 URL 和 `/etc/arthur-build`，页面显示构建标识。
+
+参考：[Linux TCP 设置](https://docs.kernel.org/networking/ip-sysctl.html)、[缓存回收说明](https://docs.kernel.org/admin-guide/sysctl/vm.html#drop-caches)、[ZRAM 文档](https://docs.kernel.org/admin-guide/blockdev/zram.html)。
+
 ## 下载固件
 
 打开 [Actions](https://github.com/cookorz1/arthur-firmware/actions)，选择最新**成功**的构建，在页面底部 **Artifacts** 下载：
@@ -127,7 +152,7 @@ GitHub 下载的是 ZIP，先解压再使用里面的 `.bin` 文件。
 5. 编译固件，检查最终包清单、IPQ6018 运行固件及板级数据、自定义控制脚本、密码哈希、页面和 Argon 资源是否进入固件根目录。
 6. 检查 factory/sysupgrade 镜像完整性、6 MiB 内核槽位限制和每个镜像的保守 60 MiB 上限，再上传产物。
 
-构建检查及模拟测试不能代替实机无线、网口 PHY 和 USB 上网测试。主源码及独立插件的固定提交见 `versions.env`；feeds 和 Mihomo 的实际版本会随产物记录。
+构建检查及模拟测试不能代替实机无线、网口 PHY、USB 上网和代理规则命中测试。发布前检查 OpenClash 生命周期钩子、BBR/FQ/ZRAM 模块和版本化页面资源；feeds 固定提交及 Mihomo 的实际版本随产物记录。
 
 ## 上游项目
 

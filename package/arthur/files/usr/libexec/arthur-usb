@@ -94,6 +94,8 @@ if [ "$changed" = 1 ]; then
     uci -q commit network
     ubus call network reload >/dev/null 2>&1
 fi
-ifup f50 >/dev/null 2>&1
+if [ "$changed" = 1 ] || [ "$(ubus call network.interface.f50 status 2>/dev/null | jsonfilter -e '@.up' 2>/dev/null)" != true ]; then
+    ifup f50 >/dev/null 2>&1
+fi
 logger -t arthur "USB tethering uplink enabled on $device"
 exit 0

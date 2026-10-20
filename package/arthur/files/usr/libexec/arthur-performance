@@ -1,0 +1,260 @@
+#!/bin/sh
+# Fixed actions only. Read methods never change sysctls or load kernel modules.
+export LC_ALL=C
+PROC="${ARTHUR_PROC_ROOT:-/proc}"
+ECM="${ARTHUR_ECM_ROOT:-/sys/kernel/debug/ecm}"
+MODULES="${ARTHUR_MODULE_ROOT:-/sys/module}"
+STATE="${ARTHUR_PERF_STATE:-/var/run/arthur-performance}"
+INIT="${ARTHUR_INIT_ROOT:-/etc/init.d}"
+
+number() {
+    case "$1" in ''|*[!0-9]*) printf null ;; *) printf '%s' "$1" ;; esac
+}
+
+proxy_active() {
+    [ "$(uci -q get openclash.config.enable)" = 1 ] && return 0
+    pidof clash clash_meta mihomo >/dev/null 2>&1
+}
+
+qos_active() {
+    uci -q show sqm 2>/dev/null | grep -Eq "\.enabled=('1'|1)$" && return 0
+    pidof qosify >/dev/null 2>&1
+}
+
+reason() {
+    [ "$(uci -q get arthur.performance.nss_mode)" != off ] || { printf off; return; }
+    proxy_active && { printf openclash; return; }
+    qos_active && { printf qos; return; }
+    [ "$(uci -q get network.globals.packet_steering)" != 1 ] || { printf steering; return; }
+    printf eligible
+}
+
+lock_control() {
+    mkdir -p "$STATE" || return 1
+    local attempt=0 owner
+    while ! mkdir "$STATE/control.lock" 2>/dev/null; do
+        owner="$(cat "$STATE/control.lock/pid" 2>/dev/null)"
+        case "$owner" in ''|*[!0-9]*) ;; *)
+            if ! kill -0 "$owner" 2>/dev/null; then
+                rm -f "$STATE/control.lock/pid"
+                rmdir "$STATE/control.lock" 2>/dev/null
+            fi ;;
+        esac
+        attempt=$((attempt + 1))
+        [ "$attempt" -lt 5 ] || return 1
+        sleep 1
+    done
+    printf '%s\n' "$$" >"$STATE/control.lock/pid"
+    trap 'rm -f "$STATE/control.lock/pid"; rmdir "$STATE/control.lock" 2>/dev/null' EXIT
+    trap 'exit 1' INT TERM
+}
+
+write_value() {
+    [ -w "$1" ] || return 1
+    [ "$(cat "$1" 2>/dev/null)" = "$2" ] || printf '%s\n' "$2" >"$1"
+}
+
+pause_ecm() {
+    local force="${1:-0}" old4 old6
+    [ -d "$MODULES/ecm" ] || return 0
+    old4="$(cat "$ECM/front_end_ipv4_stop" 2>/dev/null)"
+    old6="$(cat "$ECM/front_end_ipv6_stop" 2>/dev/null)"
+    if ! write_value "$ECM/front_end_ipv4_stop" 1 || ! write_value "$ECM/front_end_ipv6_stop" 1; then
+        # Missing debug controls: unload the standalone ECM module, never the Wi-Fi driver.
+        rmmod ecm >/dev/null 2>&1 && [ ! -d "$MODULES/ecm" ] && return 0
+        printf '%s\n' nss_controls_missing >"$STATE/error"
+        return 1
+    fi
+    if [ "$force" = 1 ] || [ "$old4:$old6" != 1:1 ] || [ ! -f "$STATE/drained" ]; then
+        # Remove accelerated forwarding rules only. Do NOT flush nf_conntrack.
+        if ! { printf '1\n' >"$ECM/ecm_db/defunct_all"; } 2>/dev/null; then
+            rm -f "$STATE/drained"
+            printf '%s\n' nss_drain_failed >"$STATE/error"
+            return 1
+        fi
+        : >"$STATE/drained"
+    fi
+    return 0
+}
+
+disable_flowtables() {
+    local changed=0 value key
+    for key in flow_offloading flow_offloading_hw; do
+        value="$(uci -q get "firewall.@defaults[0].$key")"
+        if [ "$value" = 1 ]; then
+            uci -q set "firewall.@defaults[0].$key=0" || return 1
+            changed=1
+        fi
+    done
+    if [ "$changed" = 1 ]; then
+        uci -q commit firewall || return 1
+        if nft list table inet fw4 >/dev/null 2>&1; then
+            "$INIT/firewall" reload >/dev/null 2>&1 || return 1
+        fi
+    fi
+    # A running stale fw4 flowtable must not survive an OpenClash start.
+    if nft list flowtable inet fw4 ft >/dev/null 2>&1; then
+        "$INIT/firewall" reload >/dev/null 2>&1 || return 1
+        nft list flowtable inet fw4 ft >/dev/null 2>&1 && return 1
+    fi
+    return 0
+}
+
+apply_tcp() {
+    local desired available
+    desired="$(uci -q get arthur.performance.tcp_cc)"
+    case "$desired" in bbr|cubic) ;; *) desired=bbr ;; esac
+    [ "$desired" != bbr ] || modprobe tcp_bbr >/dev/null 2>&1
+    modprobe sch_fq >/dev/null 2>&1
+    available="$(cat "$PROC/sys/net/ipv4/tcp_available_congestion_control" 2>/dev/null)"
+    case " $available " in *" $desired "*)
+        write_value "$PROC/sys/net/ipv4/tcp_congestion_control" "$desired" || return 1 ;;
+        *) printf '%s\n' tcp_algorithm_unavailable >"$STATE/error"; return 1 ;;
+    esac
+    # Set the default for new queues; leave existing mq/CAKE/HTB and SQM trees alone.
+    write_value "$PROC/sys/net/core/default_qdisc" fq
+}
+
+reconcile() {
+    local why
+    lock_control || return 1
+    rm -f "$STATE/error"
+    if ! disable_flowtables; then
+        pause_ecm 1
+        printf '%s\n' flowtable_conflict >"$STATE/error"
+        return 1
+    fi
+    apply_tcp || :
+    # Changing ZRAM takes effect on reboot. Never swapoff while memory is under pressure.
+    if [ -x "$INIT/zram" ]; then
+        if [ "$(uci -q get arthur.performance.zram_enabled)" = 0 ]; then
+            "$INIT/zram" enabled >/dev/null 2>&1 && "$INIT/zram" disable
+        else
+            "$INIT/zram" enabled >/dev/null 2>&1 || "$INIT/zram" enable
+        fi
+    fi
+    why="$(reason)"
+    printf '%s\n' "$why" >"$STATE/reason"
+    if [ "$why" != eligible ]; then
+        pause_ecm
+        return $?
+    fi
+    if [ ! -d "$MODULES/ecm" ]; then
+        modprobe ecm front_end_selection=1 >/dev/null 2>&1 || {
+            printf '%s\n' nss_load_failed >"$STATE/error"; return 1;
+        }
+        # Keep upstream USB/NSS GRO-fraglist compatibility settings.
+        if [ -r /lib/netifd/offload/disable_offloads.sh ]; then
+            ( . /lib/netifd/offload/disable_offloads.sh; disable_offload ) >/dev/null 2>&1
+        fi
+    fi
+    # Preserve the upstream event and NSS redirect setup without flushing conntrack.
+    [ ! -e "$PROC/sys/net/netfilter/nf_conntrack_events" ] || write_value "$PROC/sys/net/netfilter/nf_conntrack_events" 1
+    [ ! -e "$PROC/sys/dev/nss/general/redirect" ] || write_value "$PROC/sys/dev/nss/general/redirect" 1
+    [ ! -e "$ECM/ecm_classifier_default/accel_delay_pkts" ] || write_value "$ECM/ecm_classifier_default/accel_delay_pkts" 1
+    # Re-check after module loading: enabling OpenClash may have changed UCI meanwhile.
+    why="$(reason)"
+    if [ "$why" != eligible ]; then
+        printf '%s\n' "$why" >"$STATE/reason"
+        pause_ecm
+        return $?
+    fi
+    write_value "$ECM/front_end_ipv4_stop" 0 && write_value "$ECM/front_end_ipv6_stop" 0 || {
+        pause_ecm 1
+        printf '%s\n' nss_controls_missing >"$STATE/error"; return 1;
+    }
+    rm -f "$STATE/drained"
+}
+
+memory_json() {
+    awk '
+        /^MemTotal:/ {total=$2} /^MemAvailable:/ {available=$2; have=1}
+        /^MemFree:/ {free=$2} /^Buffers:/ {buffers=$2} /^Cached:/ {cache=$2}
+        /^SReclaimable:/ {reclaim=$2} /^Shmem:/ {shmem=$2}
+        /^SwapTotal:/ {swap=$2} /^SwapFree:/ {swapfree=$2}
+        END {
+            if (!have) available=free+buffers+cache+reclaim-shmem;
+            if (available<0) available=0; if (available>total) available=total;
+            printf "{\"total_kib\":%d,\"available_kib\":%d,\"cached_kib\":%d,\"swap_total_kib\":%d,\"swap_used_kib\":%d}",
+                total,available,cache+reclaim,swap,swap-swapfree
+        }' "$PROC/meminfo"
+}
+
+status() {
+    local proxy=false driver=false loaded=false wifi=false zram=false tcp qdisc why error
+    local stop4 stop6 count4 count6 zram_size zram_used build pid rss=0 current
+    proxy_active && proxy=true
+    [ ! -d "$MODULES/qca_nss_drv" ] || driver=true
+    [ ! -d "$MODULES/ecm" ] || loaded=true
+    case "$(cat "$MODULES/ath11k/parameters/nss_offload" 2>/dev/null)" in 1|Y|y) wifi=true ;; esac
+    tcp="$(cat "$PROC/sys/net/ipv4/tcp_congestion_control" 2>/dev/null)"
+    case "$tcp" in ''|*[!a-zA-Z0-9_-]*) tcp=unknown ;; esac
+    qdisc="$(cat "$PROC/sys/net/core/default_qdisc" 2>/dev/null)"
+    case "$qdisc" in ''|*[!a-zA-Z0-9_-]*) qdisc=unknown ;; esac
+    why="$(reason)"
+    error="$(cat "$STATE/error" 2>/dev/null)"
+    case "$error" in tcp_algorithm_unavailable|nss_load_failed|nss_controls_missing|nss_drain_failed|flowtable_conflict) ;; *) error='' ;; esac
+    stop4="$(cat "$ECM/front_end_ipv4_stop" 2>/dev/null)"
+    stop6="$(cat "$ECM/front_end_ipv6_stop" 2>/dev/null)"
+    count4="$(cat "$ECM/ecm_nss_ipv4/accelerated_count" 2>/dev/null)"
+    count6="$(cat "$ECM/ecm_nss_ipv6/accelerated_count" 2>/dev/null)"
+    zram_size="$(awk '$1 ~ /^\/dev\/zram/ {s+=$3} END {print s+0}' "$PROC/swaps" 2>/dev/null)"
+    zram_used="$(awk '$1 ~ /^\/dev\/zram/ {s+=$4} END {print s+0}' "$PROC/swaps" 2>/dev/null)"
+    [ "${zram_size:-0}" = 0 ] || zram=true
+    for pid in $(pidof clash clash_meta mihomo 2>/dev/null | tr ' ' '\n' | sort -u); do
+        case "$pid" in ''|*[!0-9]*) continue ;; esac
+        current="$(awk '/^VmRSS:/ {print $2}' "$PROC/$pid/status" 2>/dev/null)"
+        case "$current" in ''|*[!0-9]*) ;; *) rss=$((rss + current)) ;; esac
+    done
+    build="$(cat "${ARTHUR_BUILD_FILE:-/etc/arthur-build}" 2>/dev/null)"
+    case "$build" in ''|*[!a-zA-Z0-9_-]*) build=unknown ;; esac
+    printf '{"proxy_guard":%s,"nss_driver":%s,"ecm_loaded":%s,"wifi_nss":%s,"tcp_cc":"%s","default_qdisc":"%s","reason":"%s","error":"%s",' \
+        "$proxy" "$driver" "$loaded" "$wifi" "$tcp" "$qdisc" "$why" "$error"
+    printf '"ecm_stop4":%s,"ecm_stop6":%s,"accelerated_ipv4":%s,"accelerated_ipv6":%s,' \
+        "$(number "$stop4")" "$(number "$stop6")" "$(number "$count4")" "$(number "$count6")"
+    printf '"zram_active":%s,"zram_size_kib":%s,"zram_used_kib":%s,"proxy_rss_kib":%s,"build":"%s","memory":' \
+        "$zram" "$(number "$zram_size")" "$(number "$zram_used")" "$rss" "$build"
+    memory_json
+    printf '}\n'
+}
+
+release_memory() {
+    local previous now before after code
+    mkdir -p "$STATE" || return 1
+    mkdir "$STATE/memory.lock" 2>/dev/null || { printf '{"ok":false,"reason":"busy"}\n'; return; }
+    trap 'rmdir "$STATE/memory.lock" 2>/dev/null' EXIT
+    trap 'exit 1' INT TERM
+    now="$(date +%s)"
+    previous="$(cat "$STATE/released_at" 2>/dev/null)"
+    case "$previous" in ''|*[!0-9]*) previous=0 ;; esac
+    if [ "$previous" -gt 0 ] && [ "$now" -ge "$previous" ] && [ $((now - previous)) -lt 60 ]; then
+        printf '{"ok":false,"reason":"cooldown"}\n'; return
+    fi
+    before="$(memory_json)"
+    if [ ! -w "$PROC/sys/vm/drop_caches" ]; then
+        printf '{"ok":false,"reason":"unavailable"}\n'; return
+    fi
+    timeout 8 sync >/dev/null 2>&1
+    code=$?
+    if [ "$code" != 0 ]; then
+        printf '{"ok":false,"reason":"sync_failed"}\n'; return
+    fi
+    if ! { printf '3\n' >"$PROC/sys/vm/drop_caches"; } 2>/dev/null; then
+        printf '{"ok":false,"reason":"unavailable"}\n'; return
+    fi
+    printf '%s\n' "$now" >"$STATE/released_at"
+    after="$(memory_json)"
+    printf '{"ok":true,"reason":"done","before":%s,"after":%s}\n' "$before" "$after"
+}
+
+case "$1" in
+    status) status ;;
+    reconcile) reconcile ;;
+    protect)
+        lock_control || exit 1
+        pause_ecm 1 || exit 1
+        disable_flowtables || { printf '%s\n' flowtable_conflict >"$STATE/error"; exit 1; }
+        ;;
+    release_memory) release_memory ;;
+    *) exit 1 ;;
+esac

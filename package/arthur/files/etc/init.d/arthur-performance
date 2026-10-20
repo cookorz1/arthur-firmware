@@ -1,0 +1,25 @@
+#!/bin/sh /etc/rc.common
+# Before firewall/network and before OpenClash. Keep the independent NSS Wi-Fi driver.
+START=18
+STOP=89
+USE_PROCD=1
+
+start_service() {
+    /usr/libexec/arthur-performance reconcile
+    procd_open_instance guard
+    procd_set_param command /usr/libexec/arthur-performance-watch
+    procd_set_param respawn 3600 5 5
+    procd_close_instance
+}
+
+reload_service() {
+    /usr/libexec/arthur-performance reconcile
+}
+
+stop_service() {
+    /usr/libexec/arthur-performance protect
+}
+
+service_triggers() {
+    procd_add_reload_trigger arthur openclash sqm qosify firewall
+}

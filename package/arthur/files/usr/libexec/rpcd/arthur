@@ -58,11 +58,15 @@ usb_bus_speed() {
 }
 
 case "$1" in
-    list) printf '{"status":{},"diagnose":{}}\n' ;;
+    list) printf '{"status":{},"diagnose":{},"performance":{},"release_memory":{}}\n' ;;
     call)
         if [ "$2" = diagnose ]; then
             exec "${ARTHUR_HEALTH_SCRIPT:-/usr/libexec/arthur-health}"
         fi
+        case "$2" in
+            performance) exec "${ARTHUR_PERF_SCRIPT:-/usr/libexec/arthur-performance}" status ;;
+            release_memory) exec "${ARTHUR_PERF_SCRIPT:-/usr/libexec/arthur-performance}" release_memory ;;
+        esac
         [ "$2" = status ] || exit 1
         enabled=true
         [ "$(uci -q get arthur.usb.enabled)" != 0 ] || enabled=false

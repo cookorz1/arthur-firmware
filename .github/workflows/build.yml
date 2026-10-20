@@ -13,6 +13,7 @@ on:
       - 'tests/**'
       - 'scripts/**'
       - 'required-packages.txt'
+      - 'feeds.lock.json'
 permissions:
   contents: read
 concurrency:
@@ -32,6 +33,7 @@ jobs:
           find files package/arthur/files -type f \( -path '*/etc/init.d/*' -o -path '*/etc/hotplug.d/*' -o -path '*/etc/uci-defaults/*' -o -path '*/usr/libexec/*' \) -print0 | xargs -0 -r -n1 sh -n
           python3 -m unittest discover -s tests -p 'test_*.py' -v
           node tests/test_view.cjs
+          node tests/test_performance_view.cjs
       - name: Install build dependencies
         run: |
           sudo apt-get update

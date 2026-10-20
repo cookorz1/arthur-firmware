@@ -20,6 +20,7 @@ checkout_commit "$SOURCE_URL" "$SOURCE_COMMIT" openwrt
 checkout_commit "$OPENCLASH_URL" "$OPENCLASH_COMMIT" openclash-src
 checkout_commit "$ISTORE_URL" "$ISTORE_COMMIT" istore-src
 cd openwrt
+python3 "$TASK_ROOT/scripts/integrate_performance.py" pin . "$TASK_ROOT/feeds.lock.json"
 printf '\nsrc-link istore %s\n' "$TASK_ROOT/istore-src" >> feeds.conf.default
 ./scripts/feeds update -a
 ./scripts/feeds install -a
@@ -36,6 +37,7 @@ cp tmp/.packageinfo "$TASK_ROOT/logs/packageinfo.txt"
 cp tmp/.config-package.in "$TASK_ROOT/logs/config-package.in"
 required=(
   TARGET_qualcommax_ipq60xx_DEVICE_jdcloud_re-ss-01
+  ATH11K_NSS_SUPPORT ATH11K_MEM_PROFILE_512M NSS_FIRMWARE_VERSION_11_4
 )
 while IFS= read -r package_name; do
     [ -z "$package_name" ] || required+=("PACKAGE_$package_name")
@@ -51,11 +53,13 @@ for symbol in "${required[@]}"; do
     }
 done
 cp -a "$TASK_ROOT/files" .
+python3 "$TASK_ROOT/scripts/integrate_performance.py" integrate . "${GITHUB_SHA:-local-$(date -u +%Y%m%d%H%M%S)}"
+sh -n package/custom/luci-app-openclash/root/etc/init.d/openclash
 # Initialise root/password only in the clean image; retained sysupgrade settings win.
 python3 "$TASK_ROOT/scripts/prepare_defaults.py" package/base-files/files/etc/shadow files/etc/shadow
 # Apply our LuCI language/theme after the upstream 99-default-settings scripts.
 mv files/etc/uci-defaults/99-arthur-custom files/etc/uci-defaults/zz-arthur-custom
-find files/etc/uci-defaults -type f -exec chmod 0755 {} +
+find files/etc/uci-defaults files/etc/init.d -type f -exec chmod 0755 {} +
 mkdir -p files/etc/openclash/core
 # Embed the stable upstream arm64 Mihomo core, recording its version and hash.
 python3 - "$TASK_ROOT/output/core-version.json" <<'PY'
@@ -92,6 +96,7 @@ for feed in feeds/*; do
     printf '%s %s\n' "$feed" "$(git -C "$feed" rev-parse HEAD)"
 done > "$TASK_ROOT/output/feed-revisions.txt"
 cp "$TASK_ROOT/versions.env" "$TASK_ROOT/output/versions.env"
+cp "$TASK_ROOT/feeds.lock.json" "$TASK_ROOT/output/feeds.lock.json"
 cp "$TASK_ROOT/required-packages.txt" "$TASK_ROOT/output/required-packages.txt"
 fi
 [ "${PREPARE_ONLY:-0}" != 1 ] || { echo 'Preparation and required-package checks completed.'; exit 0; }
@@ -128,9 +133,13 @@ if len(roots) != 1:
 root = roots[0]
 required_files = [
     'usr/libexec/rpcd/arthur', 'usr/libexec/arthur-usb', 'usr/libexec/arthur-health', 'etc/init.d/arthur',
+    'usr/libexec/arthur-performance', 'usr/libexec/arthur-performance-watch',
+    'etc/init.d/arthur-performance', 'etc/init.d/qca-nss-ecm',
+    'etc/uci-defaults/91-arthur-performance', 'etc/arthur-build',
     'etc/hotplug.d/net/90-f50', 'etc/config/arthur',
     'etc/uci-defaults/99-arthur-wireless', 'etc/uci-defaults/zz-arthur-custom',
     'www/luci-static/resources/view/arthur/network.js',
+    'www/luci-static/resources/view/arthur/performance.js',
     'usr/share/luci/menu.d/luci-app-arthur.json',
     'usr/share/rpcd/acl.d/luci-app-arthur.json'
 ]
@@ -139,6 +148,18 @@ for relative in required_files:
         raise SystemExit('Custom feature missing from firmware root: ' + relative)
 if not (root / 'www/luci-static/argon').is_dir():
     raise SystemExit('Argon theme assets missing from firmware root')
+menu = json.loads((root / 'usr/share/luci/menu.d/luci-app-arthur.json').read_text())
+for entry in menu.values():
+    view = entry.get('action', {}).get('path', '')
+    if view and not (root / 'www/luci-static/resources/view' / (view + '.js')).is_file():
+        raise SystemExit('Versioned LuCI view missing: ' + view)
+if (root / 'etc/init.d/openclash').read_text().count('/usr/libexec/arthur-performance protect') != 3:
+    raise SystemExit('OpenClash lifecycle guard hooks missing from firmware')
+if 'nf_conntrack' in (root / 'etc/init.d/qca-nss-ecm').read_text():
+    raise SystemExit('Unsafe upstream ECM startup script was not replaced')
+for module in ('tcp_bbr', 'sch_fq', 'zram'):
+    if not list(root.glob('lib/modules/*/' + module + '.ko*')):
+        raise SystemExit('Required performance kernel module missing: ' + module)
 shadow = (root / 'etc/shadow').read_text()
 root_entries = [line.split(':') for line in shadow.splitlines() if line.startswith('root:')]
 if len(root_entries) != 1 or not root_entries[0][1].startswith('$6$'):
@@ -156,6 +177,8 @@ for relative in firmware_files:
 (output / 'feature-checks.json').write_text(json.dumps({
     'custom_files': required_files, 'argon_assets': True,
     'ath11k_firmware_files': firmware_files, 'root_password_sha512': True,
+    'openclash_guard_hooks': 3, 'versioned_views': True,
+    'performance_modules': ['tcp_bbr', 'sch_fq', 'zram'],
     'required_packages': (output / 'required-packages.txt').read_text().splitlines(),
     'hardware_testing': 'pending for enhanced features'
 }, indent=2))

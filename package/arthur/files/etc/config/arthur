@@ -1,2 +1,7 @@
 config usb 'usb'
 	option enabled '1'
+
+config performance 'performance'
+	option tcp_cc 'bbr'
+	option nss_mode 'auto'
+	option zram_enabled '1'
