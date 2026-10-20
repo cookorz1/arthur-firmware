@@ -25,7 +25,8 @@ const data = {ports: [
     {label: 'LAN1', device: 'lan1', present: true, link: true, speed: 100, duplex: 'half'},
     {label: 'LAN2', device: 'lan2', present: true, link: false, speed: null},
     {label: 'LAN3', device: 'lan3', present: true, link: true, speed: null}
-], usb_enabled: true, usb_present: false, usb_device: ''};
+], usb_enabled: true, usb_present: true, usb_device: 'usb0', usb_bus_speed: 5000,
+usb_port: {label: 'USB', device: 'usb0', present: true, link: true, speed: 480, duplex: 'unknown'}};
 function allText(node) {
     if (typeof node === 'string') return node;
     if (Array.isArray(node)) return node.map(allText).join(' ');
@@ -34,7 +35,7 @@ function allText(node) {
 (async () => {
     const rendered = await view.render([true, data]);
     const text = allText(rendered);
-    for (const expected of ['WAN', 'LAN1', 'LAN2', 'LAN3', '1000 Mbps', '100 Mbps', '未连接', '无法读取', '等待连接 F50'])
+    for (const expected of ['WAN', 'LAN1', 'LAN2', 'LAN3', 'USB', '1000 Mbps', '100 Mbps', '480 Mbps', '5000 Mbps', '未连接', '无法读取'])
         assert.ok(text.includes(expected), expected);
     assert.equal(flags.length, 1);
     assert.equal(flags[0].name, 'enabled');
@@ -43,6 +44,12 @@ function allText(node) {
     assert.equal(polling[0].seconds, 3);
     view.updateStatus({...data, usb_enabled: false});
     assert.ok(allText(view.usbStatus).includes('已关闭'));
+    assert.ok(allText(view.usbSpeed).includes('5000 Mbps'));
+    view.updateStatus({...data, usb_present: false, usb_bus_speed: null});
+    assert.ok(allText(view.usbSpeed).includes('未连接'));
+    assert.ok(allText(view.usbStatus).includes('等待连接 F50'));
+    view.updateStatus({...data, usb_bus_speed: null});
+    assert.ok(allText(view.usbSpeed).includes('无法读取'));
     view.updateStatus({...data, usb_enabled: true, usb_present: true, usb_up: true, usb_device: 'usb0'});
     assert.ok(allText(view.usbStatus).includes('usb0'));
     console.log('LuCI view rendering, link labels, USB states and polling checks passed.');

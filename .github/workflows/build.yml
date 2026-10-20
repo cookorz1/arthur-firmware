@@ -11,6 +11,7 @@ on:
       - 'files/**'
       - 'package/**'
       - 'tests/**'
+      - 'scripts/**'
       - 'required-packages.txt'
 permissions:
   contents: read

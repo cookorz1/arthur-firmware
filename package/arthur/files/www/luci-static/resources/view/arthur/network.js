@@ -14,7 +14,10 @@ return view.extend({
     },
 
     updateStatus: function(data) {
-        var rows = (data.ports || []).map(function(port) {
+        var ports = (data.ports || []).slice();
+        if (data.usb_port)
+            ports.push(data.usb_port);
+        var rows = ports.map(function(port) {
             var state = !port.present ? _('接口不存在') : (port.link ? _('已连接') : _('未连接'));
             var speed = !port.link ? '—' : (port.speed > 0 ? port.speed + ' Mbps' : _('无法读取'));
             var duplex = !port.link ? '—' : (port.duplex === 'full' ? _('全双工') : (port.duplex === 'half' ? _('半双工') : _('未知')));
@@ -31,6 +34,11 @@ return view.extend({
             (!data.usb_present ? _('USB 上网已开启，等待连接 F50') :
             (data.usb_up ? _('F50 已连接并取得上网接口') : _('已发现 F50，正在建立 DHCP 连接')));
         dom.content(this.usbStatus, [usb + (data.usb_device ? ' · ' + data.usb_device : '')]);
+        var busSpeed = data.usb_bus_speed > 0 ? data.usb_bus_speed + ' Mbps' : _('无法读取');
+        dom.content(this.usbSpeed, [
+            _('USB 总线连接速率：') + (data.usb_present ? busSpeed : _('未连接')) +
+            _('。USB 行的链路速率由网卡驱动报告；两者均不代表蜂窝网络或宽带测速。')
+        ]);
     },
 
     render: function(data) {
@@ -44,6 +52,7 @@ return view.extend({
 
         this.portRows = E('tbody');
         this.usbStatus = E('p', {'class': 'cbi-section-descr'});
+        this.usbSpeed = E('p', {'class': 'cbi-section-descr'});
         var table = E('table', {'class': 'table'}, [
             E('thead', {}, [E('tr', {'class': 'tr table-titles'},
                 [_('网口'), _('设备'), _('链路状态'), _('协商速率'), _('双工模式')].map(function(title) {
@@ -62,7 +71,8 @@ return view.extend({
                     E('p', {'class': 'cbi-section-descr'}, [_('每 3 秒刷新 WAN、LAN1、LAN2、LAN3 的物理链路状态。协商速率不代表宽带测速结果。')]),
                     table,
                     E('h3', {}, [_('USB 上网状态')]),
-                    this.usbStatus
+                    this.usbStatus,
+                    this.usbSpeed
                 ]), formNode
             ]);
         }, this));

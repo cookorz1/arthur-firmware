@@ -51,6 +51,10 @@ for symbol in "${required[@]}"; do
     }
 done
 cp -a "$TASK_ROOT/files" .
+# Initialise root/password only in the clean image; retained sysupgrade settings win.
+python3 "$TASK_ROOT/scripts/prepare_defaults.py" package/base-files/files/etc/shadow files/etc/shadow
+# Apply our LuCI language/theme after the upstream 99-default-settings scripts.
+mv files/etc/uci-defaults/99-arthur-custom files/etc/uci-defaults/zz-arthur-custom
 find files/etc/uci-defaults -type f -exec chmod 0755 {} +
 mkdir -p files/etc/openclash/core
 # Embed the stable upstream arm64 Mihomo core, recording its version and hash.
@@ -125,7 +129,7 @@ root = roots[0]
 required_files = [
     'usr/libexec/rpcd/arthur', 'usr/libexec/arthur-usb', 'etc/init.d/arthur',
     'etc/hotplug.d/net/90-f50', 'etc/config/arthur',
-    'etc/uci-defaults/99-arthur-wireless',
+    'etc/uci-defaults/99-arthur-wireless', 'etc/uci-defaults/zz-arthur-custom',
     'www/luci-static/resources/view/arthur/network.js',
     'usr/share/luci/menu.d/luci-app-arthur.json',
     'usr/share/rpcd/acl.d/luci-app-arthur.json'
@@ -135,8 +139,23 @@ for relative in required_files:
         raise SystemExit('Custom feature missing from firmware root: ' + relative)
 if not (root / 'www/luci-static/argon').is_dir():
     raise SystemExit('Argon theme assets missing from firmware root')
+shadow = (root / 'etc/shadow').read_text()
+root_entries = [line.split(':') for line in shadow.splitlines() if line.startswith('root:')]
+if len(root_entries) != 1 or not root_entries[0][1].startswith('$6$'):
+    raise SystemExit('Clean-image root password hash missing')
+firmware_files = [
+    'lib/firmware/ath11k/IPQ6018/hw1.0/board-2.bin',
+    'lib/firmware/IPQ6018/q6_fw.mdt',
+    'lib/firmware/IPQ6018/m3_fw.mdt',
+    'lib/firmware/IPQ6018/q6_fw.b03',
+    'lib/firmware/IPQ6018/m3_fw.b02'
+]
+for relative in firmware_files:
+    if not (root / relative).is_file():
+        raise SystemExit('Ath11k runtime firmware file missing: ' + relative)
 (output / 'feature-checks.json').write_text(json.dumps({
     'custom_files': required_files, 'argon_assets': True,
+    'ath11k_firmware_files': firmware_files, 'root_password_sha512': True,
     'required_packages': (output / 'required-packages.txt').read_text().splitlines(),
     'hardware_testing': 'pending for enhanced features'
 }, indent=2))

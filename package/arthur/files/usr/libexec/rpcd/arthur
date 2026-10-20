@@ -4,7 +4,7 @@ SYSFS_ROOT="${ARTHUR_SYSFS_ROOT:-/sys/class/net}"
 port_json() {
     local device="$1" label="$2" present=false link=false speed=null duplex=unknown
     local carrier current_speed current_duplex details
-    if [ -d "$SYSFS_ROOT/$device" ]; then
+    if [ -n "$device" ] && [ -d "$SYSFS_ROOT/$device" ]; then
         present=true
         carrier="$(cat "$SYSFS_ROOT/$device/carrier" 2>/dev/null)"
         current_speed="$(cat "$SYSFS_ROOT/$device/speed" 2>/dev/null)"
@@ -32,6 +32,31 @@ port_json() {
         "$label" "$device" "$present" "$link" "$speed" "$duplex"
 }
 
+usb_path() {
+    local path
+    [ -n "$1" ] || return 1
+    path="$(readlink -f "$SYSFS_ROOT/$1/device" 2>/dev/null)"
+    [ -n "$path" ] || return 1
+    while [ "$path" != / ] && [ -n "$path" ]; do
+        if [ -r "$path/idVendor" ]; then
+            printf '%s\n' "$path"
+            return 0
+        fi
+        path="${path%/*}"
+    done
+    return 1
+}
+
+usb_bus_speed() {
+    local path value
+    path="$(usb_path "$1")" || { printf null; return; }
+    value="$(cat "$path/speed" 2>/dev/null)"
+    # Keep the USB endpoint's speed separate from any netdev-reported speed.
+    printf '%s\n' "$value" | awk '
+        /^[0-9]+([.][0-9]+)?$/ {if ($0 + 0 > 0) {printf "%g", $0; found=1}}
+        END {if (!found) printf "null"}'
+}
+
 case "$1" in
     list) printf '{"status":{}}\n' ;;
     call)
@@ -40,6 +65,18 @@ case "$1" in
         [ "$(uci -q get arthur.usb.enabled)" != 0 ] || enabled=false
         usb_device="$(uci -q get network.f50.device)"
         case "$usb_device" in *[!a-zA-Z0-9_.:-]*) usb_device='' ;; esac
+        # A disabled F50 can be physically present before network.f50 is created.
+        if [ -z "$usb_device" ] || [ ! -d "$SYSFS_ROOT/$usb_device" ]; then
+            usb_device=''
+            for entry in "$SYSFS_ROOT"/*; do
+                candidate="${entry##*/}"
+                case "$candidate" in *[!a-zA-Z0-9_.:-]*) continue ;; esac
+                path="$(usb_path "$candidate")" || continue
+                [ "$(cat "$path/idVendor" 2>/dev/null)" = 19d2 ] || continue
+                usb_device="$candidate"
+                break
+            done
+        fi
         present=false
         [ -z "$usb_device" ] || [ ! -d "$SYSFS_ROOT/$usb_device" ] || present=true
         up=false
@@ -49,8 +86,10 @@ case "$1" in
         printf ','; port_json lan1 LAN1
         printf ','; port_json lan2 LAN2
         printf ','; port_json lan3 LAN3
-        printf '],"usb_enabled":%s,"usb_present":%s,"usb_up":%s,"usb_device":"%s"}\n' \
+        printf '],"usb_enabled":%s,"usb_present":%s,"usb_up":%s,"usb_device":"%s","usb_port":' \
             "$enabled" "$present" "$up" "$usb_device"
+        port_json "$usb_device" USB
+        printf ',"usb_bus_speed":%s}\n' "$(usb_bus_speed "$usb_device")"
         ;;
     *) exit 1 ;;
 esac

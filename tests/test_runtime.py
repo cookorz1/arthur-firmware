@@ -56,7 +56,6 @@ class RuntimeTests(unittest.TestCase):
         self.env = dict(os.environ, PATH=str(self.bin) + os.pathsep + os.environ['PATH'],
                         ARTHUR_SYSFS_ROOT=str(self.net),
                         ARTHUR_LOCK_DIR=str(self.base / 'usb.lock'),
-                        ARTHUR_WIFI_KEY_FILE=str(self.base / 'wifi-key'),
                         MOCK_UCI=str(self.uci_file), MOCK_EVENTS=str(self.events),
                         MOCK_BASE=str(self.base))
         self.command('uci', UCI_MOCK)
@@ -94,6 +93,7 @@ class RuntimeTests(unittest.TestCase):
         device = self.base / 'sys/devices/usb1/1-1/1-1:1.0'
         device.mkdir(parents=True, exist_ok=True)
         (device.parent / 'idVendor').write_text(vendor)
+        (device.parent / 'speed').write_text('5000')
         (interface / 'device').symlink_to(device, target_is_directory=True)
         return name
 
@@ -169,7 +169,7 @@ class RuntimeTests(unittest.TestCase):
         self.assertTrue(ports[1]['link'])
         self.assertIsNone(ports[1]['speed'])
 
-    def test_wifi_uses_random_password_and_preserves_custom_networks(self):
+    def wifi_defaults(self):
         self.update({
             'wireless.radio0': 'wifi-device', 'wireless.radio0.band': '2g',
             'wireless.radio1': 'wifi-device', 'wireless.radio1.band': '5g',
@@ -183,19 +183,68 @@ class RuntimeTests(unittest.TestCase):
             'wireless.custom.mode': 'ap', 'wireless.custom.ssid': 'ExistingWifi',
             'wireless.custom.key': 'keep-this-password', 'wireless.custom.encryption': 'psk2'
         })
+    def test_wifi_sets_requested_defaults_and_preserves_custom_networks(self):
+        self.wifi_defaults()
         self.run_script(WIFI)
         data = self.data()
         key = data['wireless.default_radio0.key']
-        self.assertRegex(key, r'^[A-Za-z0-9]{18}$')
-        self.assertEqual(data['wireless.default_radio1.key'], key)
-        self.assertEqual(data['wireless.default_radio0.ssid'], 'Arthur-2.4G')
-        self.assertEqual(data['wireless.default_radio1.ssid'], 'Arthur-5G')
+        self.assertEqual(key, 'jdy-cookorz2.4G')
+        self.assertEqual(data['wireless.default_radio1.key'], 'jdy-cookorz5G')
+        self.assertEqual(data['wireless.default_radio0.ssid'], key)
+        self.assertEqual(data['wireless.default_radio1.ssid'], 'jdy-cookorz5G')
         self.assertEqual(data['wireless.radio1.disabled'], '0')
-        self.assertEqual(data['wireless.default_radio0.encryption'], 'sae-mixed')
+        self.assertEqual(data['wireless.default_radio0.encryption'], 'psk2')
+        self.assertEqual(data['wireless.default_radio1.network'], 'lan')
+        self.assertEqual(data['wireless.default_radio1.hidden'], '0')
+        self.assertEqual(data['wireless.radio0.channel'], '1')
+        self.assertEqual(data['wireless.radio1.channel'], '36')
+        self.assertEqual(data['wireless.radio1.country'], 'CN')
+        self.assertEqual(data['wireless.radio0.htmode'], 'HE20')
+        self.assertEqual(data['wireless.radio1.htmode'], 'HE80')
         self.assertEqual(data['wireless.custom.key'], 'keep-this-password')
-        self.assertEqual((self.base / 'wifi-key').stat().st_mode & 0o777, 0o600)
         self.run_script(WIFI)
         self.assertEqual(self.data()['wireless.default_radio0.key'], key)
+
+    def test_wifi_waits_for_both_bands_then_retries_without_losing_setup(self):
+        self.wifi_defaults()
+        current = self.data()
+        del current['wireless.radio1.band']
+        self.uci_file.write_text(json.dumps(current))
+        result = subprocess.run(['sh', str(WIFI)], env=self.env, capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 1)
+        self.assertNotIn('wireless.default_radio0.key', self.data())
+        self.update({'wireless.radio1.band': '5g'})
+        self.run_script(WIFI)
+        self.assertEqual(self.data()['wireless.default_radio1.ssid'], 'jdy-cookorz5G')
+
+    def test_usb_bus_and_driver_speed_are_independent_even_when_disabled(self):
+        self.add_usb()
+        self.update({'arthur.usb.enabled': '0'})
+        interface = self.net / 'usb0'
+        (interface / 'carrier').write_text('1')
+        (interface / 'speed').write_text('1000')
+        data = json.loads(self.run_script(STATUS, 'call', 'status'))
+        self.assertFalse(data['usb_enabled'])
+        self.assertTrue(data['usb_present'])
+        self.assertEqual(data['usb_bus_speed'], 5000)
+        self.assertEqual(data['usb_port']['speed'], 1000)
+        self.assertEqual(data['usb_port']['device'], 'usb0')
+        (interface / 'speed').write_text('-1')
+        (self.base / 'sys/devices/usb1/1-1/speed').write_text('480')
+        data = json.loads(self.run_script(STATUS, 'call', 'status'))
+        self.assertEqual(data['usb_bus_speed'], 480)
+        self.assertIsNone(data['usb_port']['speed'])
+
+    def test_usb_missing_or_unreadable_bus_does_not_invent_speed(self):
+        data = json.loads(self.run_script(STATUS, 'call', 'status'))
+        self.assertFalse(data['usb_present'])
+        self.assertFalse(data['usb_port']['present'])
+        self.assertIsNone(data['usb_bus_speed'])
+        self.add_usb()
+        (self.base / 'sys/devices/usb1/1-1/speed').write_text('unknown')
+        data = json.loads(self.run_script(STATUS, 'call', 'status'))
+        self.assertTrue(data['usb_present'])
+        self.assertIsNone(data['usb_bus_speed'])
 
 
 if __name__ == '__main__':

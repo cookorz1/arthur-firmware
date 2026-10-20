@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-arthur
-PKG_VERSION:=1.0.0
+PKG_VERSION:=1.1.0
 PKG_RELEASE:=1
 PKG_LICENSE:=MIT
 
@@ -17,7 +17,7 @@ define Package/luci-app-arthur
 endef
 
 define Package/luci-app-arthur/description
-  Show the negotiated physical link speed of WAN and LAN1-3 and control
+  Show WAN, LAN1-3, USB link and USB bus speeds and control
   the persistent F50 USB DHCP uplink from the LuCI interface.
 endef
 

@@ -8,16 +8,16 @@ start_service() {
     if [ -f /etc/uci-defaults/99-arthur-wireless ]; then
         (
             attempt=0
-            while [ "$attempt" -lt 5 ]; do
+            while [ "$attempt" -lt 12 ]; do
                 if sh /etc/uci-defaults/99-arthur-wireless; then
                     rm -f /etc/uci-defaults/99-arthur-wireless
                     wifi reload >/dev/null 2>&1
                     exit 0
                 fi
                 attempt=$((attempt + 1))
-                sleep 2
+                sleep 5
             done
-            logger -t arthur 'Wireless initialisation deferred until next boot'
+            logger -t arthur 'Both Wi-Fi bands were not ready within 60s; inspect logread and iw phy. Setup will retry next boot.'
         ) &
     fi
 }

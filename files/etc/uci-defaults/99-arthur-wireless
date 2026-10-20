@@ -1,11 +1,19 @@
 #!/bin/sh
-# Initialise only unconfigured factory APs; retain existing custom networks.
-KEY_FILE="${ARTHUR_WIFI_KEY_FILE:-/etc/arthur-wifi-password}"
+# Wait for both ath11k bands before declaring first-boot setup complete.
 wifi config >/dev/null 2>&1 || exit 1
 interfaces="$(uci -q show wireless | sed -n 's/^wireless\.\([^=]*\)=wifi-iface$/\1/p')"
-[ -n "$interfaces" ] || exit 1
+have_2g=0
+have_5g=0
+for section in $interfaces; do
+    [ "$(uci -q get "wireless.$section.mode")" = ap ] || continue
+    radio="$(uci -q get "wireless.$section.device")"
+    case "$(uci -q get "wireless.$radio.band")" in
+        2g) have_2g=1 ;;
+        5g) have_5g=1 ;;
+    esac
+done
+[ "$have_2g:$have_5g" = 1:1 ] || exit 1
 changed=0
-key=''
 for section in $interfaces; do
     [ "$(uci -q get "wireless.$section.mode")" = ap ] || continue
     ssid="$(uci -q get "wireless.$section.ssid")"
@@ -16,26 +24,24 @@ for section in $interfaces; do
     case "$encryption" in ''|none) ;; *) continue ;; esac
     radio="$(uci -q get "wireless.$section.device")"
     [ -n "$radio" ] || continue
-    if [ -z "$key" ]; then
-        [ ! -r "$KEY_FILE" ] || key="$(cat "$KEY_FILE")"
-        if [ "${#key}" -lt 16 ]; then
-            key="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 18)"
-            [ "${#key}" = 18 ] || exit 1
-            (umask 077; printf '%s\n' "$key" >"$KEY_FILE") || exit 1
-        fi
-    fi
     band="$(uci -q get "wireless.$radio.band")"
     case "$band" in
-        5g) ssid='Arthur-5G' ;;
-        2g) ssid='Arthur-2.4G' ;;
+        5g) ssid='jdy-cookorz5G'; channel=36; htmode=HE80 ;;
+        2g) ssid='jdy-cookorz2.4G'; channel=1; htmode=HE20 ;;
         *) continue ;;
     esac
-    uci -q set "wireless.$radio.disabled=0"
-    uci -q set "wireless.$section.disabled=0"
-    uci -q set "wireless.$section.ssid=$ssid"
-    uci -q set "wireless.$section.encryption=sae-mixed"
-    uci -q set "wireless.$section.key=$key"
+    uci -q set "wireless.$radio.disabled=0" || exit 1
+    uci -q set "wireless.$radio.country=CN" || exit 1
+    uci -q set "wireless.$radio.channel=$channel" || exit 1
+    uci -q set "wireless.$radio.htmode=$htmode" || exit 1
+    uci -q set "wireless.$section.disabled=0" || exit 1
+    uci -q set "wireless.$section.hidden=0" || exit 1
+    uci -q set "wireless.$section.network=lan" || exit 1
+    uci -q set "wireless.$section.ssid=$ssid" || exit 1
+    uci -q set "wireless.$section.encryption=psk2" || exit 1
+    uci -q set "wireless.$section.ieee80211w=0" || exit 1
+    uci -q set "wireless.$section.key=$ssid" || exit 1
     changed=1
 done
-[ "$changed" != 1 ] || uci -q commit wireless
+[ "$changed" != 1 ] || uci -q commit wireless || exit 1
 exit 0
