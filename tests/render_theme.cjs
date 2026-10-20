@@ -16,7 +16,6 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         await page.waitForFunction(()=>window.previewReady===true || window.previewError);
         assert.equal(await page.evaluate(()=>window.previewError || ''),'');
         assert.equal(errors.length,0,errors.join('\n'));
-        await page.locator('.arthur-dashboard').screenshot({path:path.join(dir,'dashboard-content.png')});
         await page.screenshot({path:path.join(dir,'dashboard-desktop.png'),fullPage:true});
         assert.ok((await page.locator('.arthur-hero').innerText()).includes('WAN + USB'));
         assert.equal(await page.locator('.arthur-port').count(),5);

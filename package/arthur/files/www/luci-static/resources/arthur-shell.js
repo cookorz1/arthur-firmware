@@ -21,7 +21,7 @@ return baseclass.extend({
             results.replaceChildren();
             var query = search.value.trim().toLocaleLowerCase();
             if (!query) { search.setAttribute('aria-expanded', 'false'); return; }
-            var found = entries.filter(function(item) {return item.label.toLocaleLowerCase().includes(query) || item.path.includes(query);}).slice(0, 10);
+            var found = entries.filter(function(item) {return (item.label + ' ' + item.path + ' ' + item.keywords).toLocaleLowerCase().includes(query);}).slice(0, 10);
             found.forEach(function(item) {results.appendChild(E('a', {href: L.url(item.path)}, item.label));});
             if (!found.length) results.appendChild(E('span', {}, '没有找到对应功能'));
             search.setAttribute('aria-expanded', 'true');
@@ -31,7 +31,8 @@ return baseclass.extend({
                 ui.menu.getChildren(node).forEach(function(child) {
                     var next = path ? path + '/' + child.name : child.name;
                     var title = _(child.title || child.name);
-                    if (path && next.indexOf('admin/') === 0 && child.name !== 'logout') entries.push({path: next, label: parent ? parent + ' / ' + title : title});
+                    var keywords = next.endsWith('/arthur') ? 'USB 随身 WiFi 网络质量检测 协商速率' : next.endsWith('/arthur-performance') ? 'BBR NSS ZRAM 加速 内存 清理 释放' : /store/.test(next) ? 'iStore 应用商店' : '';
+                    if (path && next.indexOf('admin/') === 0 && child.name !== 'logout') entries.push({path: next, label: parent ? parent + ' / ' + title : title, keywords: keywords});
                     walk(child, next, title);
                 });
             }
