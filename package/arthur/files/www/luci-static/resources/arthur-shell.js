@@ -7,6 +7,16 @@ return baseclass.extend({
         var header = document.querySelector('header .flex1');
         var sidebar = document.querySelector('#mainmenu');
         if (!header || !sidebar) return;
+        var menuToggle = document.querySelector('a.showSide');
+        if (menuToggle) {
+            menuToggle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+            menuToggle.setAttribute('role', 'button');
+            menuToggle.setAttribute('tabindex', '0');
+            menuToggle.setAttribute('aria-label', '打开导航菜单');
+            menuToggle.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter' || event.key === ' ') {event.preventDefault(); menuToggle.click();}
+            });
+        }
         var brand = sidebar.querySelector('.brand');
         if (brand) {
             brand.prepend(E('span', {'class': 'arthur-mark', 'aria-hidden': 'true'}));

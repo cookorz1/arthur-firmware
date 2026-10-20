@@ -25,6 +25,12 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         await page.getByRole('searchbox').press('Escape');
         await page.getByRole('button',{name:'切换深浅主题'}).click();
         assert.equal(await page.locator('html').getAttribute('data-arthur-theme'),'dark');
+        const contrast=await page.locator('.arthur-stat strong').first().evaluate(el=>{
+            function luminance(css) {const rgb=css.match(/[\d.]+/g).slice(0,3).map(Number).map(c=>{c/=255;return c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4);});return rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;}
+            const fg=luminance(getComputedStyle(el).color),bg=luminance(getComputedStyle(el.closest('.arthur-card')).backgroundColor);
+            return (Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05);
+        });
+        assert.ok(contrast>=4.5,'Dark metric contrast: '+contrast);
         await page.screenshot({path:path.join(dir,'dashboard-dark.png'),fullPage:true});
         await page.getByRole('button',{name:'切换深浅主题'}).click();
         const layout=[];
@@ -33,7 +39,10 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
             const result=await page.evaluate(()=>({width:innerWidth,overflow:document.querySelector('.main-right').scrollWidth-document.querySelector('.main-right').clientWidth,
                 cards:[...document.querySelectorAll('.arthur-card')].filter(e=>{const r=e.getBoundingClientRect();return r.right>innerWidth+1||r.left<0;}).length}));
             layout.push(result);assert.ok(result.overflow<=1,JSON.stringify(result));assert.equal(result.cards,0,JSON.stringify(result));
-            if(width===390) await page.screenshot({path:path.join(dir,'dashboard-mobile.png'),fullPage:true});
+            if(width===390) {
+                assert.ok(await page.getByRole('button',{name:'打开导航菜单'}).isVisible());
+                await page.screenshot({path:path.join(dir,'dashboard-mobile.png'),fullPage:true});
+            }
         }
         await page.setViewportSize({width:1536,height:1000});
         await open('login');
