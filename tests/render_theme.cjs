@@ -17,6 +17,24 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         assert.equal(await page.evaluate(()=>window.previewError || ''),'');
         assert.equal(errors.length,0,errors.join('\n'));
         const version=fs.readFileSync('VERSION','utf8').trim();
+        async function checkAvatar(selector) {
+            const result=await page.locator(selector).first().evaluate(async element=>{
+                const background=getComputedStyle(element).backgroundImage;
+                const match=background.match(/^url\(["']?(.*?)["']?\)$/);
+                if(!match)return {error:'Avatar background missing: '+background};
+                const image=new Image();
+                return await new Promise(resolve=>{
+                    image.onload=()=>resolve({width:image.naturalWidth,height:image.naturalHeight,url:image.src});
+                    image.onerror=()=>resolve({error:'Avatar failed to load'});
+                    image.src=match[1];
+                });
+            });
+            assert.ok(!result.error,JSON.stringify(result));
+            assert.ok(result.url.includes('/arthur/avatar.jpg'),JSON.stringify(result));
+            assert.ok(result.width>0&&result.height>0,JSON.stringify(result));
+        }
+        await checkAvatar('.arthur-mark');
+        await checkAvatar('.arthur-avatar');
         assert.ok((await page.locator('.sidenav-header .brand').innerText()).includes('by-cookorz'));
         assert.ok((await page.locator('.arthur-side-footer').innerText()).includes('v'+version));
         await page.screenshot({path:path.join(dir,'dashboard-desktop.png'),fullPage:true});
@@ -49,6 +67,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         }
         await page.setViewportSize({width:1536,height:1000});
         await open('login');
+        await checkAvatar('.arthur-mark');
         assert.ok((await page.locator('.arthur-login-footer').innerText()).includes('v'+version));
         assert.ok((await page.locator('.arthur-login-footer').innerText()).includes('by-cookorz'));
         assert.ok(!(await page.locator('body').innerText()).includes('@ARTHUR_VERSION@'));

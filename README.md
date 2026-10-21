@@ -1,195 +1,123 @@
-# jdy-cookorz · 京东云亚瑟定制固件
+<div align="center">
 
-<img src="package/arthur/files/www/luci-static/arthur/logo.svg" width="64" height="64" alt="cookorz C-Link Logo">
+<img src="package/arthur/files/www/luci-static/arthur/avatar.jpg" width="96" height="96" alt="cookorz 的头像">
 
-**by-cookorz** · 固件定制与界面维护 · 当前源码版本见 [VERSION](VERSION)
+# jdy-cookorz
 
-[更新日志](CHANGELOG.md) · [版本记录与发布方法](docs/VERSIONING.md) · [固定版本下载](https://github.com/cookorz1/arthur-firmware/releases) · [测试构建](https://github.com/cookorz1/arthur-firmware/actions)
+京东云亚瑟 AX1800 Pro 定制固件 · **by-cookorz**
 
-[![Build firmware](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml/badge.svg)](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml)
+[![构建状态](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml/badge.svg)](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml)
 
-面向 **京东云亚瑟 AX1800 Pro / JDCloud RE-SS-01** 的 OpenWrt 定制固件，基于 **LibWrt 25.12-nss**。集成双频 Wi-Fi、Argon 中文主题、iStore 应用商店、OpenClash、随身 WiFi USB 上网、网络质量检测，以及 BBR / NSS 兼容管理和内存面板。
+[下载版本](https://github.com/cookorz1/arthur-firmware/releases) · [测试构建](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml) · [更新日志](CHANGELOG.md) · [使用说明](docs/USAGE.md)
 
-**当前进度：** 雪山界面基线（1.4.0 / Actions #12）已构建成功。本次 1.5.0-rc.1 增加 C-Link Logo、by-cookorz 署名和版本记录；源码修改不等于已经发布，构建状态见 Actions，正式下载见 Releases。实机验证结果与编译状态分开记录。
+</div>
 
-## 主要功能
+## 我想把亚瑟做成什么样
 
-| 功能 | 内容 |
+我是 cookorz，这里放的是我为京东云亚瑟整理的定制固件，系统基于 LibWrt。我最初想解决的事情很简单：插上随身 WiFi 就能共享网络，常用应用方便安装，打开管理页面就能看清网络和设备状态。
+
+现在我把双频 Wi-Fi、iStore、OpenClash、USB 上网、端口速率和网络检测放进了同一套界面，也加上了 BBR、NSS 兼容管理和内存面板。界面以 Argon 为基础，保留雪山登录页、中文菜单和深浅色切换，Logo 与标签页图标统一用我的头像。
+
+后面我会继续围绕这台设备完善功能。涉及驱动、无线和加速的调整，我会在更新日志里写清楚改动及验证范围；实机表现也欢迎带上版本号反馈。
+
+## 适用设备与版本
+
+| 项目 | 说明 |
 | --- | --- |
-| 双频 Wi-Fi | 亚瑟原生 ath11k/IPQ6018 驱动、专用无线校准固件、2.4 GHz / 5 GHz AP、默认 WPA2-PSK |
-| 定制界面 | 基于 Argon 的雪山首页、C-Link 标志、中文登录页、by-cookorz 署名、手机适配与深浅切换 |
-| iStore | 原版应用商店，按需安装应用；应用依赖仍需与当前固件兼容 |
-| OpenClash | 内置插件及构建时的 Mihomo ARM64 稳定核心，导入自己的配置后使用 |
-| 随身 WiFi USB 上网 | 按 CDC-ECM / RNDIS / CDC-NCM 驱动识别 USB 共享网络，跨品牌 DHCP 接入，不限 F50 |
-| 端口协商速率 | “网络 → 亚瑟网络面板”分别显示 WAN、LAN1、LAN2、LAN3、USB 网卡链路速率，并单独显示 USB 总线连接速率，每 3 秒刷新 |
-| USB 上网开关 | 同一页面开启或关闭随身 WiFi 上网，保存并应用后生效；关闭状态在重启、重新插拔后保持 |
-| 网络质量检测 | 手动分别检测 WAN / USB 的 IPv4 接入、HTTPS 可达性、两测点延迟与丢包；不伪造蜂窝信号格数或光功率 |
-| 加速与内存 | BBR / Cubic 切换、NSS 自动兼容控制、128 MiB ZRAM、内存可用量、代理进程占用及手动缓存回收 |
+| 设备 | **京东云亚瑟 AX1800 Pro / JDCloud RE-SS-01** |
+| 板型 | `jdcloud,re-ss-01` |
+| 编译目标 | `qualcommax/ipq60xx`，IPQ6018 |
+| 当前源码版本 | [VERSION](VERSION)；改动记录在 [CHANGELOG.md](CHANGELOG.md) |
+| 发布版本 | [Releases](https://github.com/cookorz1/arthur-firmware/releases)，`rc` 标记为测试候选版 |
+| 构建记录 | [Actions](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml)，可查看对应提交与检查结果 |
 
-端口速率从物理网口的 sysfs / ethtool 状态读取。未连接的端口显示“未连接”；无法读取实际速率时显示“无法读取”，不会把千兆接口能力当作当前协商速率。该数值也不等于宽带测速结果。
+这份配置针对 RE-SS-01，请先确认板型和分区布局。编译检查、浏览器检查和实机验证分别记录，具体版本的状态以对应构建及发布说明为准。
 
-## 常用组件
+## 下载和刷入
 
-| 分类 | 已选组件 |
+我把固定版本放在 Releases。如果这里还没有下载包，先到 Actions 找成功构建。还没发布的改动，可以到 Actions 选择对应提交的**成功构建**，在页面底部 Artifacts 下载固件包。下载 Artifacts 通常需要登录 GitHub，文件也有保留期限。
+
+新的固件包按 `jdy-cookorz-v版本号-提交前12位-构建编号` 命名。下载 ZIP 后先解压，再选择里面的 `.bin`：
+
+| 文件 | 用途 |
 | --- | --- |
-| USB 网卡与共享网络 | CDC-ECM、RNDIS、CDC-NCM、RTL8152/RTL8153 系列、ASIX、AX88179，USB 3.0，usb-modeswitch |
-| 4G / 5G 模块 | QMI、MBIM、USB 串口 Option/WWAN、CDC-ACM，uqmi、umbim 及 LuCI 协议设置 |
-| 存储与文件系统 | USB Storage / UAS、ext4、exFAT、NTFS3、FAT，中文文件名相关 NLS，挂载和分区查看工具 |
-| 网络工具 | ethtool-full、iperf3、tcpdump-mini、drill、ip-full |
-| 日常管理 | DDNS、网络唤醒 WOL、UPnP 设置、设备流量统计 nlbwmon、TTYD 终端、SFTP、htop、nano |
+| `jdy-cookorz-arthur-v版本号-提交前12位-factory.bin` | 兼容本镜像格式的 **U-Boot 刷机** |
+| `jdy-cookorz-arthur-v版本号-提交前12位-sysupgrade.bin` | 匹配本机板型及分区布局的系统内升级 |
+| `SHA256SUMS` | 校验固件文件完整性 |
+| `FIRMWARE_VERSION.json` | 版本、源码提交、构建链接、依赖版本及镜像校验值 |
+| `RELEASE_NOTES.md` | 这一版的更新说明与刷入提示 |
 
-UPnP 插件默认关闭，按需启用。USB 自动接入根据共享网络驱动识别，不限制厂商；普通 RTL8152/ASIX 网卡以及原始 QMI/MBIM 模块不会被自动设置为 DHCP，可在“网络 → 接口”中手动配置。
+较早的构建可能使用上游文件名，按 `factory.bin` / `sysupgrade.bin` 后缀区分。你用 U-Boot 刷入时选择 **factory.bin**，同时核对自己的 U-Boot 和分区布局。ZIP 需要解压，改后缀不能把压缩包变成固件。刷机前备份自己的配置；本项目不负责更改 U-Boot 或重新分区。
 
-## 首次使用
+Windows 可用 PowerShell 核对校验值，并与 `SHA256SUMS` 对照：
 
-1. 电脑通过网线接入 LAN，打开 **http://192.168.10.1**。
-2. 主机名为 `jdy-cookorz`，用户名为 `root`，初始管理密码为 `password`。
-3. 打开“网络 → 无线”，查看无线网络及初始密码，再按需要修改名称和密码。
-4. 打开“网络 → 亚瑟网络面板”，查看 WAN/LAN/USB 网卡及 USB 总线速率，并设置 USB 上网开关。
-5. 随身 WiFi 以 USB 共享网络模式连接后，默认尝试建立 DHCP 接口；如关闭 USB 上网，请在网络面板重新开启并“保存并应用”。为兼容旧版，内部接口名仍保留 `f50`。
-6. 在 iStore 中按需安装应用；OpenClash 需导入自己的订阅或配置后开启。
+```powershell
+Get-FileHash .\实际固件文件名.bin -Algorithm SHA256
+```
 
-### Wi-Fi 默认设置
+Linux / macOS 可在解压目录执行 `shasum -a 256 -c SHA256SUMS`。
 
-| 项目 | 默认值 |
+## 第一次开机
+
+建议先用网线接 LAN，打开 **http://192.168.10.1**。
+
+| 项目 | 初始值 |
 | --- | --- |
 | 主机名 | `jdy-cookorz` |
 | 管理账号 / 密码 | `root` / `password` |
 | 2.4 GHz 名称 / 密码 | `jdy-cookorz2.4G` / `jdy-cookorz2.4G` |
 | 5 GHz 名称 / 密码 | `jdy-cookorz5G` / `jdy-cookorz5G` |
-| 加密 | WPA2-PSK / AES，可在界面中自行改为 WPA2/WPA3 |
-| 2.4 GHz 信道 / 带宽 | 1 / HE20 |
-| 5 GHz 信道 / 带宽 | 36（非 DFS）/ HE80 |
-| 有线管理地址 | `192.168.10.1` |
+| 无线模式 | WPA2-PSK / AES；2.4 GHz HE20，5 GHz HE80 |
 | 时区 | 中国上海 |
 
-这些默认值按设备所有者要求设置，适用于全新安装或恢复出厂配置。保留设置升级会继续使用原来的主机名、密码和无线配置。无线初始化等待两个频段配置都出现，最长重试约 60 秒；仅配置未自定义的默认 AP，不覆盖已有自定义网络。首次登录后可自行修改密码、国家及信道。管理密码在构建时生成 SHA-512 哈希，并保留上游其他系统账号。
+这些是全新安装或恢复出厂设置时的初始值。保留配置升级会沿用原设置。无线初始化可能需要约一分钟，首次登录后请修改管理密码和 Wi-Fi 密码。
 
-### USB 速率说明
+随身 WiFi 先开启 USB 网络共享，再接入路由器。到 **网络 → 亚瑟网络面板** 查看连接、控制 USB 上网开关，或手动检测网络质量。OpenClash 需要导入自己的配置后启用；应用可在 iStore 按需安装。
 
-- **USB 行的链路速率**：读取 USB 网卡的 sysfs / ethtool 驱动报告，驱动未提供时显示“无法读取”。
-- **USB 总线连接速率**：读取当前 USB 设备实际枚举速率，例如 `5000 Mbps`（USB 3.x）或 `480 Mbps`（USB 2.0），不以设备标称值代替。
-- USB 上网关闭时，仍显示已插入随身 WiFi 的物理连接及总线速率。总线速率不代表 5G 蜂窝速率或互联网测速。
+## 已经集成的功能
 
-### 网络质量检测与信号强度的区别
-
-打开“网络 → 亚瑟网络面板 → 网络质量检测”，点击“开始检测”。检测是手动触发的短时 IPv4 采样，不持续发送测试流量。
-
-| 检测项 | 说明 |
+| 功能 | 在哪里、能做什么 |
 | --- | --- |
-| 上网来源 / IP | 分别查看宽带 WAN 和 USB 随身 WiFi 的接口状态与 IPv4 地址，支持 PPPoE 的实际三层接口 |
-| 延迟 / 丢包 | 绑定对应接口，分别向 `223.5.5.5`、`119.29.29.29` 各发送 3 次 ICMP 请求；显示平均延迟和丢包率 |
-| HTTPS 可达性 | 绑定对应接口，访问百度、腾讯 HTTPS 首页的响应头，保留证书校验；单个请求最多 4 秒，两来源并行检测 |
-| 结果解释 | ICMP 被限制时，HTTPS 成功仍显示外网可达；HTTPS 失败而 ICMP 成功时分别显示，不直接判定断网 |
-| 蜂窝 / 光信号 | USB/网线通常不传递 RSRP、RSRQ、SINR、RSSI 或光猫光功率；需要随身 WiFi/光猫开放专用接口，当前显示检测范围说明 |
+| 定制首页 | WAN / USB 实时流量、CPU、可用内存、存储、端口状态和常用应用入口 |
+| 中文管理界面 | Argon 定制样式、雪山登录页、头像标志、`by-cookorz` 署名、版本显示、手机布局与深浅色切换 |
+| 双频 Wi-Fi | 亚瑟原生 ath11k 驱动及板级固件，2.4 GHz / 5 GHz AP |
+| iStore / OpenClash | 应用商店、OpenClash 和构建时记录版本的 Mihomo ARM64 核心 |
+| USB 网络共享 | CDC-ECM / RNDIS / CDC-NCM 随身 WiFi 的 DHCP 接入；开关状态重启、重新插拔后保留 |
+| 端口协商速率 | WAN、LAN1–LAN3、USB 网卡实际链路速率，另列 USB 总线枚举速率 |
+| 网络质量检测 | 手动检测 WAN / USB 的 IPv4、延迟、丢包和 HTTPS 可达性 |
+| 性能与内存 | BBR / Cubic、NSS 自动兼容保护、128 MiB ZRAM、可用内存与手动缓存回收 |
+| 常用驱动与工具 | USB 网卡与存储驱动、QMI / MBIM、常见文件系统、DDNS、WOL、流量统计、TTYD、SFTP、iperf3、ethtool 等 |
 
-本功能只检查预设接口 `wan` 和兼容接口 `f50`，使用当前系统路由、DNS 与透明代理策略，不修改路由或防火墙。IPv6-only 接入显示未取得 IPv4，不能据此判断 IPv6 断网。少量采样、测点阻断、DNS 或系统时间异常都可能影响结果；它不是测速或信号强度测量。
+完整操作、USB 设备识别范围、无线排查以及性能设置说明放在 [使用与排查](docs/USAGE.md)。
 
-### 无线排障
+有几处容易误会，我单独说明一下：
 
-如果干净刷入本版后仍搜不到无线，先等待约一分钟，再通过有线登录终端查看以下输出。配置及信道调整不能代替实际射频测试。
+- 端口速率和 USB 总线速率代表链路状态；网络测速、宽带带宽和蜂窝信号强度需要分别判断。当前网络检测不读取 RSRP / SINR 或光猫光功率。
+- USB 开关控制网络接入，关闭后随身 WiFi 仍会供电。为了兼容旧配置，内部接口名继续使用 `f50`，页面统一显示“随身 WiFi”。
+- OpenClash 启用或运行时，兼容保护会暂停 NSS 的 ECM 转发加速；SQM / QoS 等冲突条件也会触发保护。BBR 作用于路由器本机的 TCP 连接，实际提升取决于使用场景。
+- 内存面板以 **MemAvailable** 为主要参考。手动回收只清理可回收缓存，设有 60 秒冷却；系统没有配置定时清缓存。ZRAM 是压缩交换空间。
+
+## 我怎么维护版本
+
+源码版本统一写在 `VERSION`，登录页、侧栏和固件文件名都从它生成。每次更新先在 [更新日志](CHANGELOG.md) 写清内容，再由 Actions 检查、构建，并保存源码提交、依赖清单和 SHA-256。
+
+开发构建用 Actions 编号区分；需要固定下载地址时，再按 [版本记录与发布流程](docs/VERSIONING.md) 发布 Release。测试候选版使用 `-rc.N`，已发布的版本和 Tag 保留原样，需要修正就发新版本，方便找回旧包和核对问题。
+
+如果你也想自行编译，见 [构建说明](docs/BUILDING.md)。
+
+## 反馈问题
+
+可以到 [Issues](https://github.com/cookorz1/arthur-firmware/issues) 留下设备板型、固件版本、刷入方式、是否保留配置，以及复现步骤。网络问题请附上 WAN / USB 类型、OpenClash 与 NSS / QoS 的状态；日志里记得去掉订阅地址、节点密码和其他私密信息。
+
+SSH 中可以用这两条命令确认当前固件：
 
 ```sh
-ubus call network.wireless status
-iw dev
-logread | grep -Ei 'ath11k|hostapd|wireless|arthur' | tail -n 100
+cat /etc/arthur-version
+cat /etc/arthur-build
 ```
 
-### USB 开关的范围
+## 致谢与许可
 
-- **开启：** 发现 USB 共享网卡后建立或启用 `f50` DHCP 接口，加入 WAN 防火墙区；已配置的共享设备仍在时优先保留它，第二台设备插入不会抢占。
-- **关闭：** 关闭 `f50` 网络接口并禁止其自动启动；随身 WiFi 仍然供电，USB 设备本身不会被断电。
-- **重新插拔 / 重启：** 使用已保存的开关状态。
-- **其他网络：** 保留有线 WAN 与 LAN 设置；有线 WAN 的路由优先级仍按当前接口配置决定。
+这份固件建立在 [LibWrt](https://github.com/LiBwrt/LibWrt)、[ImmortalWrt LuCI](https://github.com/immortalwrt/luci)、[Argon](https://github.com/jerrykuku/luci-theme-argon)、[iStore](https://github.com/istoreos/istore)、[OpenClash](https://github.com/vernesong/OpenClash) 和 [Mihomo](https://github.com/MetaCubeX/mihomo) 等项目之上，感谢这些项目的维护者。
 
-## 加速与内存管理
-
-入口：**网络 → 加速与内存**。保留亚瑟的 IPQ6018 / NSS 11.4 和 ath11k 512 MiB 内存配置，不超频，不放大 TCP 缓冲区或连接跟踪上限。
-
-| 功能 | 默认值与实际范围 |
-| --- | --- |
-| TCP 拥塞控制 | BBR；可切回 Cubic。影响路由器自身与代理出口的内核 TCP 新连接，不改变手机/电脑的 TCP 算法，不为 UDP/QUIC 加速 |
-| 默认队列 | FQ；只设置新队列默认值，不替换已有 mq、CAKE、HTB 或其他 SQM 树 |
-| NSS 转发 | 自动兼容；OpenClash 配置已启用或进程仍在时，暂停 IPv4/IPv6 ECM 转发加速并清退硬件加速规则，保留连接跟踪表 |
-| 代理关闭后 | OpenClash 配置关闭且进程退出、SQM/QoS 未启用、软件包分载未开启时恢复 NSS。可在页面显式关闭 NSS，不提供绕过兼容保护的强制开关 |
-| 无线 NSS | 保留原生驱动，独立显示状态；NSS 无法代替代理加解密。USB 流量是否支持 NSS 由驱动和连接类型决定，页面连接计数是全机统计 |
-| 冲突管理 | fw4 软件/硬件流量卸载保持关闭；NSS 不与其叠加。SQM/QoS 或软件包分载开启时暂停 NSS，保留对应功能 |
-| ZRAM | 全新安装默认 128 MiB、lzo-rle 压缩交换，按需占用 RAM；保留已有自定义大小。开启/关闭下次重启生效，不在低内存时强制 swapoff |
-| 手动释放缓存 | 同步数据后回收干净缓存与可回收 Slab，展示实际前后可用量；60 秒间隔，不结束进程、不删除临时目录，不清空交换或连接 |
-
-OpenClash 启动和重载前有同步保护钩子，停止过程中仍保持保护。控制失败时阻止继续启动代理并显示日志，避免静默绕过规则；后台每 5 秒检查配置和进程状态。默认自动模式优先保证 OpenClash 规则经过 CPU；并不承诺代理开启时仍能使用 NSS 路由转发加速。
-
-NSS 上游原启动/停止脚本会写入连接跟踪清空节点，本固件使用独立控制入口替代。改变性能设置不会为已连接的 USB 上网接口重复执行 ifup。BBR 不承诺提高运营商带宽；NSS 连接数、实际算法和内存值均从内核读取，无法读取时显示未就绪或未知。
-
-Linux 会自动回收缓存，内存占用高不等于内存耗尽，应关注 **MemAvailable**。手动缓存回收不能释放 OpenClash 规则或程序堆内存，频繁回收会增加 CPU/I/O；没有设置定时清理。ZRAM 是压缩内存，不是额外物理内存，也不保证大规则集永不触发 OOM。
-
-所有 feeds 固定到前一成功构建的提交（`feeds.lock.json`），主源码与插件提交仍见 `versions.env`。每次构建产生独立 LuCI 页面 URL 和 `/etc/arthur-build`，页面显示构建标识。
-
-参考：[Linux TCP 设置](https://docs.kernel.org/networking/ip-sysctl.html)、[缓存回收说明](https://docs.kernel.org/admin-guide/sysctl/vm.html#drop-caches)、[ZRAM 文档](https://docs.kernel.org/admin-guide/blockdev/zram.html)。
-
-## 下载固件
-
-打开 [Actions](https://github.com/cookorz1/arthur-firmware/actions)，选择最新**成功**的构建，在页面底部 **Artifacts** 下载：
-
-```text
-Arthur-Enhanced-WiFi-Argon-F50-iStore-运行编号
-```
-
-GitHub 下载的是 ZIP，先解压再使用里面的 `.bin` 文件。
-
-| 文件 | 用途 |
-| --- | --- |
-| `…jdcloud_re-ss-01-squashfs-factory.bin` | 与镜像格式兼容的 U-Boot 固件更新入口 |
-| `…jdcloud_re-ss-01-squashfs-sysupgrade.bin` | 与机型、布局及升级脚本匹配的 OpenWrt 系统升级入口 |
-| `SHA256SUMS` | 固件文件校验值 |
-| `feature-checks.json` | 构建时验证的组件和自定义文件 |
-| `resolved.config` / `*.manifest` | 实际生效的构建配置与已安装软件包清单 |
-
-`Arthur-build-logs-*` 是排查构建问题的日志包，不是刷机包。镜像选择应结合实际 U-Boot 和分区布局；不要将 ZIP 改名为 BIN，或强制跳过格式、机型校验。项目不会修改 U-Boot 或自动调整分区。
-
-## 构建与验证
-
-在 GitHub Actions 中手动选择 **Run workflow**，或提交构建相关文件到 `main` 分支。流程依次执行：
-
-1. 测试端口状态读取、USB 关闭/重启/插拔后的状态、重新启用，以及无线初始化和页面渲染。
-2. 取得固定提交的 LibWrt、OpenClash、iStore，安装 feeds，生成配置。
-3. 按 `required-packages.txt` 核对无线、主题、商店、驱动和网络面板是否确实被选中。
-4. 下载 Mihomo ARM64 稳定核心，核对发布摘要（如提供）及 ELF 架构，并记录版本和 SHA-256。
-5. 编译固件，检查最终包清单、IPQ6018 运行固件及板级数据、自定义控制脚本、密码哈希、页面和 Argon 资源是否进入固件根目录。
-6. 检查 factory/sysupgrade 镜像完整性、6 MiB 内核槽位限制和每个镜像的保守 60 MiB 上限，再上传产物。
-
-构建检查及模拟测试不能代替实机无线、网口 PHY、USB 上网和代理规则命中测试。发布前检查 OpenClash 生命周期钩子、BBR/FQ/ZRAM 模块和版本化页面资源；feeds 固定提交及 Mihomo 的实际版本随产物记录。
-
-## 上游项目
-
-- [LibWrt](https://github.com/LiBwrt/LibWrt) · 系统与 NSS 支持
-- [ImmortalWrt LuCI](https://github.com/immortalwrt/luci) · 中文界面、Argon 主题与常用插件
-- [iStore](https://github.com/istoreos/istore) · 应用商店
-- [OpenClash](https://github.com/vernesong/OpenClash) · 代理管理
-- [Mihomo](https://github.com/MetaCubeX/mihomo) · ARM64 代理核心
-
-本仓库新增的配置和亚瑟网络面板采用 MIT 许可。固件中各上游组件保留各自的许可证与版权声明。
-
-
-## jdy-cookorz 界面
-
-- 首页：运行时间、WAN/USB 实时吞吐、CPU、MemAvailable 口径内存、Overlay 存储、WAN/LAN/USB 协商速率及加速状态。
-- 流量：每 3 秒读取实际上联接口计数器，可选择 WAN、USB 或全部上联，同一网卡不重复计数。首次采样、重连、计数器重置或长时间切到后台后重新采样；只保留当前浏览器会话最近 3 分钟数据。
-- 设备：显示 IPv4 LAN 邻居记录与 DHCP 名称，明确区分可达、缓存、确认中、静态记录，不把缓存数量宣称为在线数量，不虚构单设备实时速度。
-- 常用功能：从当前账号可访问的 LuCI 菜单生成入口，包含 OpenClash、iStore、USB/网络检测和加速与内存。搜索只搜索管理功能。
-- 上联“已获取地址”不等同于外网探测成功；网络质量检测仍在“网络 → 亚瑟网络面板”手动运行。
-- 登录：保留 LuCI 原有认证 POST、错误提示和会话机制，不记忆明文密码。雪山图片随固件本地提供，不依赖在线壁纸或 CDN。
-- 主题：右上角切换深浅色，选择保存在当前浏览器；此定制版本的颜色由 Arthur 样式统一控制，Argon 配置中的深浅模式不再覆盖它。
-- 构建检查：在桌面、平板和 390/320 像素窄屏自动执行真实首页代码，检查搜索、主题切换、登录表单与横向溢出。预览使用明确标注的样例数据，不能当成实机性能证明。
-
-
-
-## 品牌与版本
-
-本项目的固件定制与界面由 **by-cookorz** 维护；基于 LibWrt、LuCI、Argon 以及各插件，不改变上游项目的归属。
-
-[![Logo 方案](docs/assets/logo-options.png)](docs/assets/logo-options.svg)
-
-当前采用 A / C-Link：C 代表 cookorz，连接节点表示网络。B 为 JC 字母组合，C 为三节点连接方案，均为本地 SVG，无需在线字体或图片服务。
-
-版本号来自 [VERSION](VERSION)，完整更新内容见 [CHANGELOG](CHANGELOG.md)。GitHub 的 Actions 编号用于开发追踪；通过“Run workflow”勾选发布后，成功构建才会生成固定 Tag 和 Release，并附固件、SHA-256 与来源清单。详细步骤见 [版本记录与发布](docs/VERSIONING.md)。
+我主要维护这里的亚瑟适配配置、网络面板和定制界面。仓库的自定义代码按 [MIT](LICENSE) 许可使用，各上游软件继续遵循各自许可证。头像仅用作本项目的作者标识，不属于 MIT 代码授权范围。

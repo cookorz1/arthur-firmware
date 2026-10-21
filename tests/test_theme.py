@@ -27,7 +27,11 @@ class ThemeTests(unittest.TestCase):
         theme.integrate(self.source, ROOT, 'abc123')
         for name in ('header.ut', 'header_login.ut'):
             self.assertIn('theme.css?v=abc123', (self.templates/name).read_text())
-            self.assertIn('logo.svg?v=abc123', (self.templates/name).read_text())
+            self.assertIn('avatar.jpg?v=abc123', (self.templates/name).read_text())
+        style = (self.source/'package/custom/arthur/files/www/luci-static/arthur/theme.css').read_text()
+        self.assertIn('avatar.jpg?v=abc123', style)
+        self.assertNotIn('@ARTHUR_BUILD@', style)
+        self.assertNotIn('url(logo.svg)', style)
         self.assertIn('arthur-shell-abc123', (self.templates/'footer.ut').read_text())
         self.assertEqual((self.resources/'arthur-shell-abc123.js').read_text(), 'shell')
 

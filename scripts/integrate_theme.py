@@ -14,8 +14,12 @@ def integrate(source, project, build_id):
     templates = source / 'feeds/luci/themes/luci-theme-argon/ucode/template/themes/argon'
     link = ('<script>try{document.documentElement.dataset.arthurTheme='
             'localStorage.getItem("arthur-theme") === "dark" ? "dark" : "light"}catch(e){}</script>\n'
-            f'<link rel="icon" type="image/svg+xml" href="/luci-static/arthur/logo.svg?v={build_id}">\n'
+            f'<link rel="icon" type="image/jpeg" href="/luci-static/arthur/avatar.jpg?v={build_id}">\n'
             f'<link rel="stylesheet" href="/luci-static/arthur/theme.css?v={build_id}">\n')
+    style_dir = source / 'package/custom/arthur/files/www/luci-static/arthur'
+    style_dir.mkdir(parents=True, exist_ok=True)
+    style = (project / 'package/arthur/files/www/luci-static/arthur/theme.css').read_text(encoding='utf-8')
+    (style_dir / 'theme.css').write_text(style.replace('@ARTHUR_BUILD@', build_id), encoding='utf-8')
     for name in ('header.ut', 'header_login.ut'):
         path = templates / name
         text = path.read_text(encoding='utf-8')

@@ -148,7 +148,7 @@ required_files = [
     'www/luci-static/resources/view/arthur/performance.js',
     'www/luci-static/resources/view/arthur/dashboard.js',
     'www/luci-static/arthur/theme.css', 'www/luci-static/arthur/mountain.png',
-    'www/luci-static/arthur/logo.svg',
+    'www/luci-static/arthur/avatar.jpg',
     'usr/share/luci/menu.d/luci-app-arthur.json',
     'usr/share/rpcd/acl.d/luci-app-arthur.json'
 ]
@@ -161,6 +161,14 @@ templates = root / 'usr/share/ucode/luci/template/themes/argon'
 for name in ('header.ut', 'header_login.ut'):
     if '/luci-static/arthur/theme.css?v=' not in (templates / name).read_text():
         raise SystemExit('Arthur skin missing from ' + name)
+    if 'type="image/jpeg" href="/luci-static/arthur/avatar.jpg?v=' not in (templates / name).read_text():
+        raise SystemExit('Author avatar favicon missing from ' + name)
+style = (root/'www/luci-static/arthur/theme.css').read_text()
+if '@ARTHUR_BUILD@' in style or 'avatar.jpg?v=' not in style:
+    raise SystemExit('Author avatar CSS stamping missing')
+avatar = root/'www/luci-static/arthur/avatar.jpg'
+if avatar.read_bytes() != pathlib.Path('package/custom/arthur/files/www/luci-static/arthur/avatar.jpg').read_bytes():
+    raise SystemExit('Author avatar changed during packaging')
 login = (templates / 'sysauth.ut').read_text()
 if 'arthur-login' not in login or 'luci_username' not in login or 'luci_password' not in login:
     raise SystemExit('Arthur login template or LuCI authentication form missing')
@@ -198,7 +206,7 @@ for relative in firmware_files:
     if not (root / relative).is_file():
         raise SystemExit('Ath11k runtime firmware file missing: ' + relative)
 (output / 'feature-checks.json').write_text(json.dumps({
-    'custom_files': required_files, 'argon_assets': True,
+    'custom_files': required_files, 'argon_assets': True, 'avatar_sha256': hashlib.sha256(avatar.read_bytes()).hexdigest(),
     'ath11k_firmware_files': firmware_files, 'root_password_sha512': True,
     'openclash_guard_hooks': 3, 'versioned_views': True,
     'performance_modules': ['tcp_bbr', 'sch_fq', 'zram'],

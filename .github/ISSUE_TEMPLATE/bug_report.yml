@@ -1,0 +1,36 @@
+name: 问题反馈
+description: 请附上版本和复现步骤，方便我定位问题。
+title: "[问题] "
+body:
+  - type: input
+    id: version
+    attributes:
+      label: 固件版本与构建标识
+      description: 登录页或侧栏可看版本；SSH 执行 cat /etc/arthur-version 和 cat /etc/arthur-build 可查完整标识。旧固件没有这些文件时请填下载包名或构建链接。
+      placeholder: 例如 1.5.0-rc.2、提交 SHA 或 Actions 链接
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: 设备与刷入方式
+      placeholder: 例如 JDCloud RE-SS-01，U-Boot factory，全新安装 / 保留配置升级
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 问题现象和复现步骤
+      description: 写清操作、预期结果及实际结果。能稳定复现的步骤最有帮助。
+    validations:
+      required: true
+  - type: textarea
+    id: network
+    attributes:
+      label: 网络和应用设置
+      description: 网络问题请填 WAN / USB 接入方式、随身 WiFi 型号、OpenClash 模式，以及 NSS / SQM / QoS 状态。
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志或截图
+      description: 提交前去掉订阅地址、节点密码、密钥和其他私密信息。截图可以直接拖入此框。

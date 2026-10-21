@@ -71,7 +71,7 @@ return baseclass.extend({
             refreshToggle();
         });
         var logout = E('a', {href: L.url('admin', 'logout'), 'class': 'arthur-account', title: '退出登录'}, [
-            E('span', {'class': 'arthur-avatar', 'aria-hidden': 'true'}, 'J'),
+            E('span', {'class': 'arthur-avatar', 'aria-hidden': 'true'}),
             E('span', {}, ['管理中心', E('small', {}, '退出登录 ↗')])
         ]);
         document.querySelector('header .container').appendChild(E('div', {'class': 'arthur-top-actions'}, [toggle, logout]));
