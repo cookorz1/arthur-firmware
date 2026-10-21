@@ -19,18 +19,22 @@ return view.extend({
     },
 
     updateStatus: function(data) {
-        var protectionError = ['flowtable_conflict', 'nss_controls_missing', 'nss_drain_failed'].indexOf(data.error) !== -1;
-        var stopped = (!data.ecm_loaded || (data.ecm_stop4 === 1 && data.ecm_stop6 === 1)) && !protectionError;
+        var protectionError = ['flowtable_conflict', 'nss_controls_missing', 'nss_drain_failed', 'nss_unload_failed'].indexOf(data.error) !== -1;
+        var stopped = (!data.ecm_loaded || (data.ecm_stop4 === 1 && data.ecm_stop6 === 1)) && !data.software_flowtable && !protectionError;
         var allowed = data.ecm_loaded && data.ecm_stop4 === 0 && data.ecm_stop6 === 0;
         var nss;
-        if (data.proxy_guard)
-            nss = stopped ? _('OpenClash 兼容保护中：暂停 NSS 转发加速') : _('正在保护，请稍候；若持续出现请查看错误提示');
+        if (data.active_backend === 'conflict')
+            nss = _('检测到加速模式冲突，请查看错误提示');
+        else if (data.proxy_guard)
+            nss = stopped ? _('OpenClash 兼容保护中：暂停 NSS 与软件转发加速') : _('正在保护，请稍候；若持续出现请查看错误提示');
         else if (data.reason === 'off')
-            nss = _('已选择关闭 NSS 转发加速');
+            nss = _('已选择关闭转发加速');
         else if (data.reason === 'qos')
-            nss = _('检测到 SQM/QoS：暂停 NSS，保留整形效果');
+            nss = _('检测到 SQM/QoS：暂停转发加速，保留整形效果');
         else if (data.reason === 'steering')
             nss = _('软件包分载已开启：暂停 NSS，避免叠加；使用 NSS 时请关闭接口全局设置中的软件包分载');
+        else if (data.mode === 'software')
+            nss = data.active_backend === 'software' && !data.error ? _('软件流量分载规则已启用；ECM 已退出') : _('软件流量分载未就绪，请检查防火墙、接口与错误提示');
         else
             nss = allowed ? _('允许 NSS 转发加速；实际命中取决于流量与驱动') : _('NSS 转发加速未就绪');
         var errors = {
@@ -38,6 +42,9 @@ return view.extend({
             nss_controls_missing: _('ECM 控制节点不可用，无法确认暂停状态'),
             nss_drain_failed: _('旧加速连接清退失败，OpenClash 启动保护会阻止继续'),
             nss_load_failed: _('ECM 模块未加载，请查看系统日志'),
+            nss_unload_failed: _('ECM 未能退出，已取消软件分载，避免两个模式叠加'),
+            software_module_unavailable: _('软件分载内核模块不可用，已取消启用'),
+            software_apply_failed: _('软件分载规则应用失败，已尝试关闭并恢复普通转发'),
             tcp_algorithm_unavailable: _('选定的 TCP 拥塞算法不可用，当前算法保持原值')
         };
         var count4 = typeof data.accelerated_ipv4 === 'number' ? data.accelerated_ipv4 : '—';
@@ -49,7 +56,8 @@ return view.extend({
         var fields = [
             [_('TCP 拥塞控制 / 默认队列'), (data.tcp_cc || '—') + ' / ' + (data.default_qdisc || '—')],
             [_('NSS 驱动'), data.nss_driver ? _('已加载') : _('未加载')],
-            [_('NSS 转发状态'), nss],
+            [_('转发加速状态'), nss],
+            [_('软件流量分载规则'), data.software_flowtable ? _('存在；不等于测速连接已命中') : _('未启用')],
             [_('NSS 加速连接数（全机）'), 'IPv4: ' + count4 + ' · IPv6: ' + count6],
             [_('无线 NSS 驱动'), data.wifi_nss ? _('已启用，独立于路由转发开关') : _('未启用或无法读取')],
             [_('ZRAM 压缩交换'), zram],
@@ -112,12 +120,13 @@ return view.extend({
         o.default = 'bbr';
         o.rmempty = false;
         o.description = _('影响路由器本机及代理出口的内核 TCP 连接，不改变终端设备的拥塞算法，也不为 UDP/QUIC 提速；新连接生效。');
-        o = s.option(form.ListValue, 'nss_mode', _('NSS 转发加速'));
-        o.value('auto', _('自动兼容（默认）'));
+        o = s.option(form.ListValue, 'nss_mode', _('转发加速模式'));
+        o.value('auto', _('NSS 自动兼容（原默认）'));
+        o.value('software', _('软件流量分载（USB 上网可选）'));
         o.value('off', _('关闭'));
         o.default = 'auto';
         o.rmempty = false;
-        o.description = _('OpenClash 已启用、进程仍运行或 SQM/QoS 工作时暂停 NSS 转发；关闭代理及整形后恢复。fw4 软件/硬件流量卸载保持关闭，不叠加加速。');
+        o.description = _('NSS 与软件分载互斥；软件模式退出 ECM，硬件流量分载始终关闭。OpenClash 已启用、核心仍运行或 SQM/QoS 工作时，两种转发加速均暂停，条件解除后恢复所选模式。保留原设置，USB 用户可手动对比软件模式。');
         o = s.option(form.Flag, 'zram_enabled', _('开启 ZRAM 压缩交换'));
         o.default = '1';
         o.rmempty = false;
@@ -137,7 +146,7 @@ return view.extend({
                 E('div', {'class': 'cbi-section'}, [
                     E('h3', {}, [_('运行状态')]),
                     E('table', {'class': 'table'}, [this.statusRows]),
-                    E('p', {'class': 'cbi-section-descr'}, [_('NSS 不能替代 OpenClash 的代理加解密。USB 流量能否被 NSS 加速由驱动和连接类型决定，连接数是全机统计，不代表 USB 已被加速。默认 FQ 只影响新建队列，保留现有 SQM/CAKE/HTB。')])
+                    E('p', {'class': 'cbi-section-descr'}, [_('软件分载和 NSS 都不保证固定网速，也不能替代代理加解密。NSS 连接数为全机统计；软件规则存在不代表某条 USB 连接已经命中。默认 FQ 只影响新建队列，保留现有 SQM/CAKE/HTB。')])
                 ]),
                 E('div', {'class': 'cbi-section'}, [
                     E('h3', {}, [_('内存状态与手动回收')]),

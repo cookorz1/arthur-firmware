@@ -43,5 +43,6 @@ luci-app-upnp
 luci-app-nlbwmon
 dnsmasq-full
 kmod-nft-tproxy
+kmod-nft-offload
 iperf3
 tcpdump-mini

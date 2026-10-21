@@ -24,4 +24,10 @@ bothBefore.uplinks.push({name:'f50',device:'usb0',ready:true,rx_bytes:0,tx_bytes
 bothAfter.uplinks.push({name:'f50',device:'usb0',ready:true,rx_bytes:300000,tx_bytes:150000});
 assert.equal(view.sampleRates(bothBefore,bothAfter,'all').rx,2400000);
 assert.equal(view.sampleRates(bothBefore,bothAfter,'f50').tx,400000);
-console.log('Dashboard rates: initial sample, true WAN/USB deltas, selection, resets, reconnects, gaps and duplicate devices passed.');
+assert.equal(view.forwardingState({active_backend:'software',mode:'software'}), '软件分载已启用');
+assert.equal(view.forwardingState({active_backend:'off',mode:'software'}), '软件分载未就绪');
+assert.equal(view.forwardingState({proxy_guard:true,software_flowtable:true}), '正在保护');
+assert.equal(view.forwardingState({proxy_guard:true,software_flowtable:false,ecm_loaded:false}), '代理保护中');
+assert.equal(view.forwardingState({active_backend:'conflict'}), '请检查');
+assert.equal(view.forwardingState({reason:'qos'}), 'QoS 保护中');
+console.log('Dashboard rates and mutually exclusive forwarding status checks passed.');

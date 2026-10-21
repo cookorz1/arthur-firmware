@@ -60,9 +60,22 @@ function sampleRates(previous, current, selection) {
     return count ? {rx: rx, tx: tx} : null;
 }
 
+function forwardingState(performance) {
+    if (performance.error || performance.active_backend === 'conflict') return '请检查';
+    if (performance.proxy_guard || performance.reason === 'openclash')
+        return performance.software_flowtable || (performance.ecm_loaded && (performance.ecm_stop4 !== 1 || performance.ecm_stop6 !== 1)) ? '正在保护' : '代理保护中';
+    if (performance.reason === 'qos') return 'QoS 保护中';
+    if (performance.reason === 'steering') return '多核转发保护';
+    if (performance.reason === 'off') return '已关闭';
+    if (performance.active_backend === 'software') return '软件分载已启用';
+    if (performance.mode === 'software') return '软件分载未就绪';
+    return performance.ecm_loaded && performance.ecm_stop4 === 0 && performance.ecm_stop6 === 0 ? 'NSS 可加速' : '未就绪';
+}
+
 return view.extend({
     handleSaveApply: null, handleSave: null, handleReset: null,
     sampleRates: sampleRates,
+    forwardingState: forwardingState,
     fetchData: function() { return Promise.all([callSnapshot(), callPorts(), callPerformance(), callInfo()]); },
     load: function() {return Promise.all([this.fetchData(), callBoard(), ui.menu.load().catch(function() {return {children: {}};})]);},
     metric: function(title, type, color) {
@@ -124,7 +137,7 @@ return view.extend({
         this.proxyState = E('b'); this.bbrState = E('b'); this.nssState = E('b'); this.zramState = E('b');
         function service(title, state, note) {return E('div', {'class': 'arthur-service-row'}, [E('div', {}, [title, E('small', {}, note)]), state]);}
         var services = E('section', {'class': 'arthur-card'}, [this.head('加速与服务', E('a', {href: L.url('admin/network/arthur-performance'), 'class': 'arthur-pill'}, '管理 ↗')),
-            service('OpenClash 保护', this.proxyState, '代理启用时暂停 NSS 路由加速'), service('TCP 拥塞控制', this.bbrState, '显示内核当前算法'), service('NSS 路由加速', this.nssState, '不代表 USB 流量一定被加速'), service('ZRAM 压缩交换', this.zramState, '内存缓冲，状态实时读取')]);
+            service('OpenClash 保护', this.proxyState, '代理启用时暂停 NSS 与软件转发加速'), service('TCP 拥塞控制', this.bbrState, '显示内核当前算法'), service('转发加速', this.nssState, 'NSS / 软件模式互斥，规则状态不代表连接已命中'), service('ZRAM 压缩交换', this.zramState, '内存缓冲，状态实时读取')]);
         var columns = E('div', {'class': 'arthur-columns'}, [E('div', {'class': 'arthur-col'}, [flow, portCard, clients]), E('div', {'class': 'arthur-col'}, [topology, E('section', {'class': 'arthur-card'}, [this.head('常用功能'), shortcuts]), services])]);
         var root = E('div', {'class': 'arthur-dashboard'}, [this.error, hero, stats, columns]);
         this.update(data[0]);
@@ -206,10 +219,10 @@ return view.extend({
         this.topologyWan.textContent = active.some(function(u) {return u.name === 'wan';}) ? '已获地址' : '未就绪';
         this.topologyUsb.textContent = !ports.usb_enabled ? '已关闭' : active.some(function(u) {return u.name === 'f50';}) ? '已获地址' : ports.usb_present ? '正在连接' : '等待 USB';
         this.topologyLan.textContent = (ports.ports || []).filter(function(p) {return /^LAN/.test(p.label) && p.link;}).length + ' 个端口已连接';
-        this.proxyState.textContent = performance.proxy_guard ? performance.error ? '请检查保护状态' : performance.ecm_loaded && (performance.ecm_stop4 !== 1 || performance.ecm_stop6 !== 1) ? '正在保护' : '代理保护中' : '未启用';
+        this.proxyState.textContent = performance.proxy_guard ? performance.error ? '请检查保护状态' : performance.software_flowtable || (performance.ecm_loaded && (performance.ecm_stop4 !== 1 || performance.ecm_stop6 !== 1)) ? '正在保护' : '代理保护中' : '未启用';
         this.proxyState.className = performance.error ? 'arthur-warning' : performance.proxy_guard ? 'arthur-good' : 'arthur-muted';
         this.bbrState.textContent = (performance.tcp_cc || '未知').toUpperCase();
-        this.nssState.textContent = performance.error ? '请检查' : performance.reason === 'openclash' ? '代理保护中' : performance.reason === 'qos' ? 'QoS 保护中' : performance.reason === 'steering' ? '多核转发保护' : performance.reason === 'off' ? '已关闭' : performance.ecm_loaded && performance.ecm_stop4 === 0 && performance.ecm_stop6 === 0 ? '可加速' : '未就绪';
+        this.nssState.textContent = forwardingState(performance);
         this.nssState.className = performance.error ? 'arthur-warning' : 'arthur-muted';
         this.zramState.textContent = performance.zram_active ? capacity(performance.zram_size_kib) + ' 已启用' : '未启用';
         this.previous = snapshot;

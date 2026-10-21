@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-arthur
 PKG_VERSION:=1.5.0
-PKG_RELEASE:=3
+PKG_RELEASE:=4
 PKG_LICENSE:=MIT
 
 include $(INCLUDE_DIR)/package.mk
@@ -12,7 +12,7 @@ define Package/luci-app-arthur
   CATEGORY:=LuCI
   SUBMENU:=3. Applications
   TITLE:=Arthur link status, uplink diagnostics and USB tethering control
-  DEPENDS:=+luci-base +rpcd +uci +ubus +jsonfilter +jshn +ethtool-full +curl +ca-bundle +coreutils-timeout +kmod-tcp-bbr +kmod-sched +zram-swap
+  DEPENDS:=+luci-base +rpcd +uci +ubus +jsonfilter +jshn +ethtool-full +curl +ca-bundle +coreutils-timeout +kmod-tcp-bbr +kmod-sched +kmod-nft-offload +zram-swap
   PKGARCH:=all
 endef
 

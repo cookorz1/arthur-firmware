@@ -21,11 +21,19 @@ qos_active() {
     pidof qosify >/dev/null 2>&1
 }
 
+mode() {
+    case "$(uci -q get arthur.performance.nss_mode)" in
+        auto|'') printf auto ;; software) printf software ;; *) printf off ;;
+    esac
+}
+
 reason() {
-    [ "$(uci -q get arthur.performance.nss_mode)" != off ] || { printf off; return; }
     proxy_active && { printf openclash; return; }
     qos_active && { printf qos; return; }
-    [ "$(uci -q get network.globals.packet_steering)" != 1 ] || { printf steering; return; }
+    [ "$(mode)" != off ] || { printf off; return; }
+    if [ "$(mode)" = auto ] && [ "$(uci -q get network.globals.packet_steering)" = 1 ]; then
+        printf steering; return
+    fi
     printf eligible
 }
 
@@ -100,6 +108,68 @@ disable_flowtables() {
     return 0
 }
 
+software_flowtable() {
+    local rules
+    rules="$(nft list flowtable inet fw4 ft 2>/dev/null)" || return 1
+    # Never call a hardware flowtable a software-only backend.
+    ! printf '%s\n' "$rules" | grep -Eq 'flags[[:space:]]+[^;]*offload'
+}
+
+stop_forwarding() {
+    local failed=0
+    # Try both protections, even if the first one fails.
+    disable_flowtables || { printf '%s\n' flowtable_conflict >"$STATE/error"; failed=1; }
+    pause_ecm "${1:-0}" || failed=1
+    return "$failed"
+}
+
+enable_software() {
+    local changed=0 key value why
+    # An already-running flowtable must be removed before touching a loaded ECM.
+    if [ -d "$MODULES/ecm" ]; then
+        stop_forwarding 1 || return 1
+        rmmod ecm >/dev/null 2>&1
+        if [ -d "$MODULES/ecm" ]; then
+            printf '%s\n' nss_unload_failed >"$STATE/error"
+            return 1
+        fi
+    fi
+    modprobe nf_flow_table_inet >/dev/null 2>&1 && modprobe nft_flow_offload >/dev/null 2>&1 || {
+        printf '%s\n' software_module_unavailable >"$STATE/error"; return 1;
+    }
+    why="$(reason)"
+    if [ "$why" != eligible ] || [ "$(mode)" != software ]; then
+        stop_forwarding
+        return $?
+    fi
+    for key in flow_offloading flow_offloading_hw; do
+        value=0
+        [ "$key" != flow_offloading ] || value=1
+        if [ "$(uci -q get "firewall.@defaults[0].$key")" != "$value" ]; then
+            uci -q set "firewall.@defaults[0].$key=$value" || return 1
+            changed=1
+        fi
+    done
+    [ "$changed" = 0 ] || uci -q commit firewall || return 1
+    # START=18 precedes fw4. Its normal start will consume the selected settings.
+    if nft list table inet fw4 >/dev/null 2>&1; then
+        if [ "$changed" = 1 ] || ! software_flowtable; then
+            "$INIT/firewall" reload >/dev/null 2>&1 || {
+                printf '%s\n' software_apply_failed >"$STATE/error"; return 1;
+            }
+        fi
+        software_flowtable || {
+            printf '%s\n' software_apply_failed >"$STATE/error"; return 1;
+        }
+    fi
+    # A proxy start waits for this lock, then drains the rules before starting its core.
+    why="$(reason)"
+    if [ "$why" != eligible ] || [ "$(mode)" != software ] || [ -d "$MODULES/ecm" ]; then
+        stop_forwarding 1
+        return $?
+    fi
+}
+
 apply_tcp() {
     local desired available
     desired="$(uci -q get arthur.performance.tcp_cc)"
@@ -119,11 +189,6 @@ reconcile() {
     local why
     lock_control || return 1
     rm -f "$STATE/error"
-    if ! disable_flowtables; then
-        pause_ecm 1
-        printf '%s\n' flowtable_conflict >"$STATE/error"
-        return 1
-    fi
     apply_tcp || :
     # Changing ZRAM takes effect on reboot. Never swapoff while memory is under pressure.
     if [ -x "$INIT/zram" ]; then
@@ -136,8 +201,23 @@ reconcile() {
     why="$(reason)"
     printf '%s\n' "$why" >"$STATE/reason"
     if [ "$why" != eligible ]; then
-        pause_ecm
+        stop_forwarding
         return $?
+    fi
+    if [ "$(mode)" = software ]; then
+        if enable_software; then return 0; fi
+        # A failed mode change cannot leave a partly enabled flowtable behind.
+        case "$(cat "$STATE/error" 2>/dev/null)" in
+            nss_*|software_*|flowtable_conflict) ;;
+            *) printf '%s\n' software_apply_failed >"$STATE/error" ;;
+        esac
+        stop_forwarding 1
+        return 1
+    fi
+    if ! disable_flowtables; then
+        pause_ecm 1
+        printf '%s\n' flowtable_conflict >"$STATE/error"
+        return 1
     fi
     if [ ! -d "$MODULES/ecm" ]; then
         modprobe ecm front_end_selection=1 >/dev/null 2>&1 || {
@@ -154,7 +234,7 @@ reconcile() {
     [ ! -e "$ECM/ecm_classifier_default/accel_delay_pkts" ] || write_value "$ECM/ecm_classifier_default/accel_delay_pkts" 1
     # Re-check after module loading: enabling OpenClash may have changed UCI meanwhile.
     why="$(reason)"
-    if [ "$why" != eligible ]; then
+    if [ "$why" != eligible ] || [ "$(mode)" != auto ]; then
         printf '%s\n' "$why" >"$STATE/reason"
         pause_ecm
         return $?
@@ -183,6 +263,7 @@ memory_json() {
 status() {
     local proxy=false driver=false loaded=false wifi=false zram=false tcp qdisc why error
     local stop4 stop6 count4 count6 zram_size zram_used build pid rss=0 current
+    local selected backend=off flowtable=false soft=false
     proxy_active && proxy=true
     [ ! -d "$MODULES/qca_nss_drv" ] || driver=true
     [ ! -d "$MODULES/ecm" ] || loaded=true
@@ -193,11 +274,24 @@ status() {
     case "$qdisc" in ''|*[!a-zA-Z0-9_-]*) qdisc=unknown ;; esac
     why="$(reason)"
     error="$(cat "$STATE/error" 2>/dev/null)"
-    case "$error" in tcp_algorithm_unavailable|nss_load_failed|nss_controls_missing|nss_drain_failed|flowtable_conflict) ;; *) error='' ;; esac
+    case "$error" in tcp_algorithm_unavailable|nss_load_failed|nss_controls_missing|nss_drain_failed|flowtable_conflict|nss_unload_failed|software_module_unavailable|software_apply_failed) ;; *) error='' ;; esac
     stop4="$(cat "$ECM/front_end_ipv4_stop" 2>/dev/null)"
     stop6="$(cat "$ECM/front_end_ipv6_stop" 2>/dev/null)"
     count4="$(cat "$ECM/ecm_nss_ipv4/accelerated_count" 2>/dev/null)"
     count6="$(cat "$ECM/ecm_nss_ipv6/accelerated_count" 2>/dev/null)"
+    selected="$(mode)"
+    nft list flowtable inet fw4 ft >/dev/null 2>&1 && flowtable=true
+    software_flowtable && soft=true
+    if [ "$flowtable" = true ]; then
+        if [ "$selected" = software ] && [ "$why" = eligible ] && [ "$loaded" = false ] &&
+           [ "$soft" = true ] && [ "$(uci -q get 'firewall.@defaults[0].flow_offloading_hw')" != 1 ]; then
+            backend=software
+        else
+            backend=conflict
+        fi
+    elif [ "$selected" = auto ] && [ "$why" = eligible ] && [ "$loaded" = true ] && [ "$stop4:$stop6" = 0:0 ]; then
+        backend=nss
+    fi
     zram_size="$(awk '$1 ~ /^\/dev\/zram/ {s+=$3} END {print s+0}' "$PROC/swaps" 2>/dev/null)"
     zram_used="$(awk '$1 ~ /^\/dev\/zram/ {s+=$4} END {print s+0}' "$PROC/swaps" 2>/dev/null)"
     [ "${zram_size:-0}" = 0 ] || zram=true
@@ -212,6 +306,7 @@ status() {
         "$proxy" "$driver" "$loaded" "$wifi" "$tcp" "$qdisc" "$why" "$error"
     printf '"ecm_stop4":%s,"ecm_stop6":%s,"accelerated_ipv4":%s,"accelerated_ipv6":%s,' \
         "$(number "$stop4")" "$(number "$stop6")" "$(number "$count4")" "$(number "$count6")"
+    printf '"mode":"%s","active_backend":"%s","software_flowtable":%s,' "$selected" "$backend" "$flowtable"
     printf '"zram_active":%s,"zram_size_kib":%s,"zram_used_kib":%s,"proxy_rss_kib":%s,"build":"%s","memory":' \
         "$zram" "$(number "$zram_size")" "$(number "$zram_used")" "$rss" "$build"
     memory_json
@@ -252,8 +347,7 @@ case "$1" in
     reconcile) reconcile ;;
     protect)
         lock_control || exit 1
-        pause_ecm 1 || exit 1
-        disable_flowtables || { printf '%s\n' flowtable_conflict >"$STATE/error"; exit 1; }
+        stop_forwarding 1 || exit 1
         ;;
     release_memory) release_memory ;;
     *) exit 1 ;;

@@ -196,7 +196,7 @@ if (root / 'etc/init.d/openclash').read_text().count('/usr/libexec/arthur-perfor
     raise SystemExit('OpenClash lifecycle guard hooks missing from firmware')
 if 'nf_conntrack' in (root / 'etc/init.d/qca-nss-ecm').read_text():
     raise SystemExit('Unsafe upstream ECM startup script was not replaced')
-for module in ('tcp_bbr', 'sch_fq', 'zram'):
+for module in ('tcp_bbr', 'sch_fq', 'zram', 'nf_flow_table', 'nf_flow_table_inet', 'nft_flow_offload'):
     if not list(root.glob('lib/modules/*/' + module + '.ko*')):
         raise SystemExit('Required performance kernel module missing: ' + module)
 shadow = (root / 'etc/shadow').read_text()
@@ -217,7 +217,8 @@ for relative in firmware_files:
     'custom_files': required_files, 'argon_assets': True, 'tab_branding': 'jdy-cookorz', 'avatar_sha256': hashlib.sha256(avatar.read_bytes()).hexdigest(),
     'ath11k_firmware_files': firmware_files, 'root_password_sha512': True,
     'openclash_guard_hooks': 3, 'versioned_views': True,
-    'performance_modules': ['tcp_bbr', 'sch_fq', 'zram'],
+    'performance_modules': ['tcp_bbr', 'sch_fq', 'zram', 'nf_flow_table', 'nf_flow_table_inet', 'nft_flow_offload'],
+    'forwarding_modes': ['auto', 'software', 'off'],
     'required_packages': (output / 'required-packages.txt').read_text().splitlines(),
     'hardware_testing': 'pending for enhanced features'
 }, indent=2))

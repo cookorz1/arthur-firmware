@@ -10,7 +10,7 @@ from test_runtime import UCI_MOCK
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / 'package/arthur/files/usr/libexec/arthur-performance'
 COMMAND = r'''#!/usr/bin/env python3
-import json, os, pathlib, sys
+import json, os, pathlib, shutil, sys
 base = pathlib.Path(os.environ['MOCK_PERF_BASE'])
 name = pathlib.Path(sys.argv[0]).name
 args = sys.argv[1:]
@@ -28,13 +28,32 @@ if name == 'modprobe' and args[0] == 'ecm':
     for key in ('front_end_ipv4_stop', 'front_end_ipv6_stop'):
         if not (ecm / key).exists(): (ecm / key).write_text('0\n')
     (ecm / 'ecm_db/defunct_all').write_text('0\n')
-if name == 'rmmod': sys.exit(1)  # prove the guard fails closed if both pause and unload fail
+if name == 'modprobe' and args[0] in ('nf_flow_table_inet', 'nft_flow_offload'):
+    if (base / 'software-module-fails').exists(): sys.exit(1)
+if name == 'rmmod':
+    if not (base / 'unload-allowed').exists(): sys.exit(1)
+    shutil.rmtree(base / 'modules/ecm')
+    shutil.rmtree(base / 'ecm')
 if name == 'nft':
-    if 'flowtable' in args: sys.exit(0 if (base / 'flowtable').exists() else 1)
+    if 'flowtable' in args:
+        node = base / 'flowtable'
+        if not node.exists(): sys.exit(1)
+        print('flowtable ft { hook ingress priority filter; devices = { eth0, lan1 };' +
+              (' flags offload;' if node.read_text() == 'hardware' else '') + ' }')
+        sys.exit(0)
     sys.exit(0 if (base / 'fw4').exists() else 1)
 if name == 'firewall':
     if (base / 'reload-fails').exists(): sys.exit(1)
-    (base / 'flowtable').unlink(missing_ok=True)
+    once = base / 'reload-fails-once'
+    if once.exists(): once.unlink(); sys.exit(1)
+    cfg_path = pathlib.Path(os.environ['MOCK_UCI'])
+    cfg = json.loads(cfg_path.read_text())
+    if cfg.get('firewall.@defaults[0].flow_offloading') == '1':
+        (base / 'flowtable').write_text('software')
+    else: (base / 'flowtable').unlink(missing_ok=True)
+    if (base / 'proxy-on-reload').exists():
+        cfg['openclash.config.enable'] = '1'
+        cfg_path.write_text(json.dumps(cfg))
 if name == 'zram':
     marker = base / 'zram-enabled'
     if args[0] == 'enabled': sys.exit(0 if marker.exists() else 1)
@@ -124,6 +143,173 @@ class PerformanceTests(unittest.TestCase):
         self.assert_paused()
         self.assertEqual((self.ecm / 'ecm_db/defunct_all').read_text().strip(), '1')
         self.assertEqual((self.proc / 'sys/net/ipv4/tcp_congestion_control').read_text().strip(), 'bbr')
+
+    def software_mode(self):
+        self.update({'arthur.performance.nss_mode': 'software'})
+        self.put('fw4', 'active')
+        self.put('unload-allowed', 'yes')
+
+    def test_software_mode_unloads_ecm_then_enables_only_software_flowtable(self):
+        self.loaded_ecm()
+        (self.modules / 'ath11k').mkdir()
+        self.software_mode()
+        self.run_action('reconcile')
+        self.assertFalse((self.modules / 'ecm').exists())
+        self.assertTrue((self.modules / 'ath11k').exists())
+        status = json.loads(self.run_action('status'))
+        self.assertEqual(status['active_backend'], 'software')
+        self.assertEqual(status['mode'], 'software')
+        self.assertTrue(status['software_flowtable'])
+        cfg = json.loads(self.uci_file.read_text())
+        self.assertEqual(cfg['firewall.@defaults[0].flow_offloading_hw'], '0')
+        events = [json.loads(line) for line in (self.base / 'events').read_text().splitlines()]
+        self.assertLess(events.index(['rmmod', 'ecm']), events.index(['firewall', 'reload']))
+        self.assertEqual((self.proc / 'net/nf_conntrack').read_text(), 'KEEP ESTABLISHED CONNECTIONS\n')
+
+    def test_steady_software_mode_does_not_reload_firewall_every_watch_cycle(self):
+        self.software_mode()
+        self.run_action('reconcile')
+        before = (self.base / 'events').read_text().count('["firewall", "reload"]')
+        self.run_action('reconcile')
+        self.assertEqual((self.base / 'events').read_text().count('["firewall", "reload"]'), before)
+        self.assertEqual(json.loads(self.run_action('status'))['active_backend'], 'software')
+
+    def test_switch_to_nss_removes_flowtable_before_loading_ecm(self):
+        self.software_mode()
+        self.run_action('reconcile')
+        self.update({'arthur.performance.nss_mode': 'auto'})
+        (self.base / 'events').write_text('')
+        self.run_action('reconcile')
+        events = [json.loads(line) for line in (self.base / 'events').read_text().splitlines()]
+        self.assertLess(events.index(['firewall', 'reload']), events.index(['modprobe', 'ecm', 'front_end_selection=1']))
+        self.assertFalse((self.base / 'flowtable').exists())
+        self.assertEqual(json.loads(self.run_action('status'))['active_backend'], 'nss')
+
+    def test_software_mode_suspends_for_proxy_then_resumes_selected_mode(self):
+        self.software_mode()
+        self.run_action('reconcile')
+        self.update({'openclash.config.enable': '1'})
+        self.run_action('reconcile')
+        status = json.loads(self.run_action('status'))
+        self.assertTrue(status['proxy_guard'])
+        self.assertFalse(status['software_flowtable'])
+        self.assertEqual(status['active_backend'], 'off')
+        self.assertEqual(status['mode'], 'software')
+        self.update({'openclash.config.enable': '0'})
+        self.run_action('reconcile')
+        self.assertEqual(json.loads(self.run_action('status'))['active_backend'], 'software')
+
+    def test_running_proxy_and_qos_both_block_software_mode(self):
+        self.software_mode()
+        self.run_action('reconcile')
+        self.put('pids.json', '{"mihomo": 9}')
+        self.run_action('reconcile')
+        self.assertFalse((self.base / 'flowtable').exists())
+        self.put('pids.json', '{}')
+        self.update({'sqm.test.enabled': '1'})
+        self.run_action('reconcile')
+        self.assertEqual(json.loads(self.run_action('status'))['reason'], 'qos')
+        self.assertFalse((self.base / 'flowtable').exists())
+
+    def test_protect_removes_software_rules_before_core_start(self):
+        self.software_mode()
+        self.run_action('reconcile')
+        self.run_action('protect')
+        self.assertFalse((self.base / 'flowtable').exists())
+        self.assertEqual(json.loads(self.uci_file.read_text())['firewall.@defaults[0].flow_offloading'], '0')
+
+    def test_protect_still_removes_flowtable_when_ecm_pause_and_unload_fail(self):
+        self.loaded_ecm()
+        (self.ecm / 'front_end_ipv4_stop').unlink()
+        self.put('fw4', 'active')
+        self.put('flowtable', 'active')
+        self.update({'firewall.@defaults[0].flow_offloading': '1'})
+        self.run_action('protect', success=False)
+        self.assertFalse((self.base / 'flowtable').exists())
+        self.assertEqual(json.loads(self.run_action('status'))['error'], 'nss_controls_missing')
+
+    def test_failed_software_protection_reports_conflict_instead_of_success(self):
+        self.software_mode()
+        self.run_action('reconcile')
+        self.put('reload-fails', 'yes')
+        self.update({'openclash.config.enable': '1'})
+        self.run_action('protect', success=False)
+        status = json.loads(self.run_action('status'))
+        self.assertEqual(status['active_backend'], 'conflict')
+        self.assertEqual(status['error'], 'flowtable_conflict')
+
+    def test_packet_steering_is_not_a_nss_conflict_in_software_mode(self):
+        self.software_mode()
+        self.update({'network.globals.packet_steering': '1'})
+        self.run_action('reconcile')
+        self.assertEqual(json.loads(self.run_action('status'))['active_backend'], 'software')
+
+    def test_software_mode_fails_closed_when_ecm_will_not_unload(self):
+        self.loaded_ecm()
+        self.software_mode()
+        (self.base / 'unload-allowed').unlink()
+        self.run_action('reconcile', success=False)
+        self.assert_paused()
+        self.assertFalse((self.base / 'flowtable').exists())
+        self.assertEqual(json.loads(self.run_action('status'))['error'], 'nss_unload_failed')
+
+    def test_missing_software_module_does_not_leave_offload_enabled(self):
+        self.software_mode()
+        self.put('software-module-fails', 'yes')
+        self.run_action('reconcile', success=False)
+        status = json.loads(self.run_action('status'))
+        self.assertEqual(status['error'], 'software_module_unavailable')
+        self.assertEqual(status['active_backend'], 'off')
+        self.assertFalse((self.base / 'flowtable').exists())
+
+    def test_software_apply_failure_rolls_back_to_unaccelerated_forwarding(self):
+        self.software_mode()
+        self.put('reload-fails-once', 'yes')
+        self.run_action('reconcile', success=False)
+        status = json.loads(self.run_action('status'))
+        self.assertEqual(status['error'], 'software_apply_failed')
+        self.assertFalse(status['software_flowtable'])
+        self.assertEqual(json.loads(self.uci_file.read_text())['firewall.@defaults[0].flow_offloading'], '0')
+
+    def test_proxy_armed_during_software_enable_is_checked_again(self):
+        self.software_mode()
+        self.put('proxy-on-reload', 'yes')
+        self.run_action('reconcile')
+        status = json.loads(self.run_action('status'))
+        self.assertTrue(status['proxy_guard'])
+        self.assertFalse(status['software_flowtable'])
+        self.assertEqual(status['active_backend'], 'off')
+
+    def test_software_mode_does_not_mistake_hardware_rules_for_software_rules(self):
+        self.software_mode()
+        self.update({'firewall.@defaults[0].flow_offloading': '1'})
+        self.put('flowtable', 'hardware')
+        self.assertEqual(json.loads(self.run_action('status'))['active_backend'], 'conflict')
+        self.run_action('reconcile')
+        self.assertEqual(json.loads(self.run_action('status'))['active_backend'], 'software')
+        self.assertEqual((self.base / 'flowtable').read_text(), 'software')
+
+    def test_early_boot_waits_for_firewall_without_claiming_acceleration(self):
+        self.software_mode()
+        (self.base / 'fw4').unlink()
+        self.run_action('reconcile')
+        status = json.loads(self.run_action('status'))
+        self.assertEqual(status['error'], '')
+        self.assertEqual(status['active_backend'], 'off')
+        self.put('fw4', 'active')
+        self.run_action('reconcile')
+        self.assertEqual(json.loads(self.run_action('status'))['active_backend'], 'software')
+
+    def test_explicit_off_clears_software_rules_and_status_stays_read_only(self):
+        self.software_mode()
+        self.run_action('reconcile')
+        self.update({'arthur.performance.nss_mode': 'off'})
+        # Reading a changed selection reports the conflict, never silently repairs it.
+        self.assertEqual(json.loads(self.run_action('status'))['active_backend'], 'conflict')
+        self.assertTrue((self.base / 'flowtable').exists())
+        self.run_action('reconcile')
+        self.assertEqual(json.loads(self.run_action('status'))['active_backend'], 'off')
+        self.assertFalse((self.base / 'flowtable').exists())
 
     def test_running_proxy_still_blocks_when_config_is_disabled(self):
         self.loaded_ecm()

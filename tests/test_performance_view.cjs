@@ -49,9 +49,19 @@ function text(node) {
     assert.ok(text(rendered).includes('abc123'));
     assert.equal(callbacks[0].seconds, 5);
     assert.deepEqual(options.map(x => x.name), ['tcp_cc', 'nss_mode', 'zram_enabled']);
-    assert.deepEqual(options[1].values.map(x => x.key), ['auto', 'off']);
+    assert.deepEqual(options[1].values.map(x => x.key), ['auto', 'software', 'off']);
     view.updateStatus({...sample, proxy_guard: false, reason: 'eligible', ecm_stop4: 0, ecm_stop6: 0});
     assert.ok(text(view.statusRows).includes('允许 NSS 转发加速'));
+    view.updateStatus({...sample, proxy_guard: false, reason: 'eligible', mode: 'software',
+        active_backend: 'software', software_flowtable: true, ecm_loaded: false});
+    assert.ok(text(view.statusRows).includes('软件流量分载规则已启用'));
+    assert.ok(text(view.statusRows).includes('不等于测速连接已命中'));
+    view.updateStatus({...sample, software_flowtable: true});
+    assert.ok(text(view.statusRows).includes('正在保护'));
+    view.updateStatus({...sample, proxy_guard: false, reason: 'eligible', mode: 'software',
+        active_backend: 'off', software_flowtable: false, error: 'nss_unload_failed'});
+    assert.ok(text(view.statusRows).includes('ECM 未能退出'));
+    assert.ok(!text(view.statusRows).includes('规则已启用'));
     view.updateStatus({...sample, proxy_guard: false, reason: 'qos'});
     assert.ok(text(view.statusRows).includes('保留整形效果'));
     config.zram_enabled = '0';
