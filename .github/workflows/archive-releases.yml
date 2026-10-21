@@ -1,0 +1,36 @@
+name: Archive successful Arthur firmware builds
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/release-archive.json'
+      - '.github/workflows/archive-releases.yml'
+      - '.github/scripts/archive_releases.py'
+      - '.github/tests/test_archive_releases.py'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: arthur-release-archive
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Test archive integrity and publication guards
+        run: python3 -m unittest discover -s .github/tests -p 'test_archive_releases.py' -v
+  archive:
+    needs: test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify original builds and publish release archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/archive_releases.py .github/release-archive.json

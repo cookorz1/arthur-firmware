@@ -8,7 +8,7 @@
 
 [![构建状态](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml/badge.svg)](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml)
 
-[下载版本](https://github.com/cookorz1/arthur-firmware/releases) · [测试构建](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml) · [更新日志](CHANGELOG.md) · [使用说明](docs/USAGE.md)
+[下载版本](https://github.com/cookorz1/arthur-firmware/releases) · [历史版本](.github/RELEASE_ARCHIVE.md) · [测试构建](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml) · [更新日志](CHANGELOG.md) · [使用说明](docs/USAGE.md)
 
 </div>
 

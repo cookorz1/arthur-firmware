@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "repository": "cookorz1/arthur-firmware",
+  "releases": [
+    {
+      "tag": "build-4",
+      "version": null,
+      "package_version": null,
+      "title": "构建 #4 · 初始 USB 上网版（历史归档）",
+      "kind": "historical",
+      "source_commit": "44273990c691ca0bbc9f58525937c5e890cacff3",
+      "run_id": 39305190653,
+      "run_number": 4,
+      "artifact_id": 12219164215,
+      "artifact_name": "Arthur-F50-OpenClash-iStore-4",
+      "artifact_sha256": "6877caa31f6ff8fe2b8141e82a64d59316235482dbde9f5db0ed0e0d3fa7feb6",
+      "changes": [
+        "集成 OpenClash、iStore 和 USB 网络共享相关驱动。",
+        "修正 iStore 所需的 XZ 依赖，形成第一份成功构建的固件。"
+      ]
+    },
+    {
+      "tag": "v1.0.0",
+      "version": "1.0.0",
+      "package_version": "1.0.0",
+      "title": "v1.0.0 · 双频 Wi-Fi 与 Argon（历史归档）",
+      "kind": "historical",
+      "source_commit": "d7b250b29845b8ae618c306be1064e60e6a9e75d",
+      "run_id": 39327147839,
+      "run_number": 5,
+      "artifact_id": 12227424552,
+      "artifact_name": "Arthur-Enhanced-WiFi-Argon-F50-iStore-5",
+      "artifact_sha256": "9b973eae46967434a9d45510907ee42bdfffd4bb2bb2ad3fbdda153207dc76f1",
+      "changes": [
+        "加入双频 Wi-Fi、中文 Argon 主题和常用软件驱动。",
+        "增加 WAN / LAN 端口速率面板和可保存状态的 USB 上网开关。"
+      ]
+    },
+    {
+      "tag": "v1.1.0",
+      "version": "1.1.0",
+      "package_version": "1.1.0",
+      "title": "v1.1.0 · 初始化设置与 USB 速率（历史归档）",
+      "kind": "historical",
+      "source_commit": "6cbfb7f3c171b2d4b301ffbf7c05049e0d267fb5",
+      "run_id": 39379062175,
+      "run_number": 6,
+      "artifact_id": 12250836600,
+      "artifact_name": "Arthur-Enhanced-WiFi-Argon-F50-iStore-6",
+      "artifact_sha256": "d55faaebba481656541b166c04be8a3a69e3cff53ef441f1bc56f92e11089fbc",
+      "changes": [
+        "初始化 jdy-cookorz 主机名、root / password 及双频 Wi-Fi 设置。",
+        "改善无线启动，分别显示 USB 网卡链路速率和 USB 总线速率。"
+      ]
+    },
+    {
+      "tag": "v1.2.0",
+      "version": "1.2.0",
+      "package_version": "1.2.0",
+      "title": "v1.2.0 · 网络质量检测（历史归档）",
+      "kind": "historical",
+      "source_commit": "ee595edd50009d5db50a210af1f7b2846abc064a",
+      "run_id": 39401358199,
+      "run_number": 7,
+      "artifact_id": 12260920376,
+      "artifact_name": "Arthur-Enhanced-WiFi-Argon-F50-iStore-7",
+      "artifact_sha256": "613cf2229d67f447d605a4a805550a5a2ced1e83b4e429f7a57246a404e9e183",
+      "changes": [
+        "增加 WAN / USB 的延迟、丢包和 HTTPS 可达性检测。",
+        "将页面中的 F50 文案改为随身 WiFi，完善通用 USB 网络共享支持。"
+      ]
+    },
+    {
+      "tag": "v1.3.0",
+      "version": "1.3.0",
+      "package_version": "1.3.0",
+      "title": "v1.3.0 · 加速与内存管理（历史归档）",
+      "kind": "historical",
+      "source_commit": "23dcca586abf380f4bbf5619a51e50fd43cf155b",
+      "run_id": 39446271943,
+      "run_number": 8,
+      "artifact_id": 12285160539,
+      "artifact_name": "Arthur-Enhanced-WiFi-Argon-F50-iStore-8",
+      "artifact_sha256": "4911632c8b8c5ddb2da429fb4d8b371e143c19605e85657131103b861c099b5d",
+      "changes": [
+        "加入 BBR / Cubic、NSS 自动兼容保护和 ZRAM。",
+        "增加手动缓存回收与内存状态面板，处理 OpenClash、NSS 和 QoS 的兼容关系。"
+      ]
+    },
+    {
+      "tag": "v1.4.0",
+      "version": "1.4.0",
+      "package_version": "1.4.0",
+      "title": "v1.4.0 · 雪山界面与首页（历史归档）",
+      "kind": "historical",
+      "source_commit": "2f38f92cf70b9865d3a54b567404464ca5be92f7",
+      "run_id": 39477735748,
+      "run_number": 12,
+      "artifact_id": 12297748615,
+      "artifact_name": "Arthur-Enhanced-WiFi-Argon-F50-iStore-12",
+      "artifact_sha256": "3dac078105dcf9f1dc56e463fb191d3fa3a318509a450cc7c95d9fb76b948864",
+      "changes": [
+        "加入雪山登录页与 jdy-cookorz 首页，展示 WAN / USB 流量和设备状态。",
+        "完善深浅色主题、管理入口搜索和手机布局，修正暗色文字对比度及移动菜单。"
+      ]
+    },
+    {
+      "tag": "v1.5.0-rc.2",
+      "version": "1.5.0-rc.2",
+      "package_version": "1.5.0",
+      "title": "v1.5.0-rc.2 · 作者头像与版本管理",
+      "kind": "versioned",
+      "source_commit": "e3695f667da949bb7f1128778dea0d1594ba6f35",
+      "run_id": 39545381685,
+      "run_number": 14,
+      "artifact_id": 12324985760,
+      "artifact_name": "jdy-cookorz-v1.5.0-rc.2-e3695f667da9-14",
+      "artifact_sha256": "2079f9e9a664b47a20d0d8ca9204b13ff162470d881ce313e92d1eb3615bad02",
+      "changes": [
+        "统一使用 cookorz 头像作为登录页、侧栏、右上角及标签页图标，加入 by-cookorz 署名。",
+        "整理项目首页、更新日志和使用文档，统一固件版本、文件名与来源记录。"
+      ]
+    }
+  ]
+}
