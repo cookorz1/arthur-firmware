@@ -2,6 +2,12 @@
 
 项目维护与界面定制：**by-cookorz**。版本号遵循 `主版本.功能版本.修订版本`，测试候选版使用 `-rc.N`。
 
+## 发布状态补记 · 2026-10-22
+
+- [v1.5.0-rc.4](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.4)：原 [Actions #16](https://github.com/cookorz1/arthur-firmware/actions/runs/39605685842) 构建成功，源码 `0a712e63c0d9`，补充发布原始镜像及校验记录。
+- [v1.5.0-rc.3](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.3)：原 [Actions #15](https://github.com/cookorz1/arthur-firmware/actions/runs/39564528452) 构建成功，源码 `b1456497a6dc`，补充发布原始镜像及校验记录。
+- 本次同步只补齐 Releases 和项目说明，没有重新编译或替换镜像。两版保留 Pre-release 标记，完整实机验收状态见各版说明；[全部版本与构建来源](.github/RELEASE_ARCHIVE.md)。
+
 ## [1.5.0-rc.4] - 2026-10-21
 
 ### USB 上网与转发加速
@@ -67,7 +73,7 @@
 
 ## [1.4.0] - 2026-10-21
 
-历史构建基线补记，对应源码 [`2f38f92`](https://github.com/cookorz1/arthur-firmware/commit/2f38f92cf70b9865d3a54b567404464ca5be92f7)，并非已有同名发布标签。
+历史构建基线补记，对应源码 [`2f38f92`](https://github.com/cookorz1/arthur-firmware/commit/2f38f92cf70b9865d3a54b567404464ca5be92f7)，现已按历史归档补充发布同名 Pre-release，保留原始镜像与来源记录。
 
 - 加入 jdy-cookorz 雪山风格首页、统一登录页、深色侧栏及深浅切换。
 - 首页展示 WAN / USB 实时流量、CPU、内存、系统存储、端口速率、邻居设备与加速保护状态。
@@ -77,7 +83,7 @@
 
 ## [1.3.0] - 2026-10-20
 
-历史构建基线补记，对应源码 [`23dcca5`](https://github.com/cookorz1/arthur-firmware/commit/23dcca586abf380f4bbf5619a51e50fd43cf155b)，并非已有同名发布标签。
+历史构建基线补记，对应源码 [`23dcca5`](https://github.com/cookorz1/arthur-firmware/commit/23dcca586abf380f4bbf5619a51e50fd43cf155b)，现已按历史归档补充发布同名 Pre-release，保留原始镜像与来源记录。
 
 - 加入 BBR / Cubic、NSS 路由加速兼容保护、ZRAM 和手动缓存回收。
 - OpenClash 启停及重载时保护代理转发；根据 QoS / 多核转发状态暂停 NSS。
@@ -86,4 +92,4 @@
 
 ## 更早的构建
 
-早期 Actions 编号用于追踪 USB 上网、Wi-Fi、中文界面、Argon、iStore、端口速率与网络检测等开发过程，不回填未经发布的正式 Tag。
+早期 Actions 编号用于追踪 USB 上网、Wi-Fi、中文界面、Argon、iStore、端口速率与网络检测等开发过程。成功生成的镜像已按历史归档整理到 Releases，版本命名与来源见 [版本记录](.github/RELEASE_ARCHIVE.md)，不把历史归档当作稳定版验收。
