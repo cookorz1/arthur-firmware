@@ -19,7 +19,9 @@ return baseclass.extend({
         }
         var brand = sidebar.querySelector('.brand');
         if (brand) {
-            brand.prepend(E('span', {'class': 'arthur-mark', 'aria-hidden': 'true'}));
+            var hostname = brand.textContent.trim() || 'jdy-cookorz';
+            brand.replaceChildren(E('span', {'class': 'arthur-mark', 'aria-hidden': 'true'}),
+                E('span', {'class': 'arthur-brand-copy'}, [E('strong', {}, hostname), E('small', {}, 'by-cookorz')]));
             brand.href = L.url('admin', 'overview');
         }
         var search = E('input', {type: 'search', placeholder: '搜索功能，例如 USB、无线、OpenClash…',
@@ -76,8 +78,10 @@ return baseclass.extend({
         var footer = E('div', {'class': 'arthur-side-footer'});
         footer.innerHTML = '<svg viewBox="0 0 140 70" aria-hidden="true"><defs><linearGradient id="arthur-router-body" x2="0" y2="1"><stop stop-color="#50637a"/><stop offset="1" stop-color="#1a2738"/></linearGradient></defs><path d="M27 37V7M114 37V7" stroke="#7e91a9" stroke-width="3" stroke-linecap="round"/><path d="M18 38L31 28H110L124 38V56H18Z" fill="url(#arthur-router-body)" stroke="#60748f"/><path d="M18 39H124M29 48H52" stroke="#192d45" stroke-width="3"/><path d="M31 48H36M41 48H46" stroke="#3c9cff" stroke-width="2"/><circle cx="112" cy="48" r="2" fill="#37ca99"/></svg>';
         footer.appendChild(E('b', {}, 'jdy-cookorz'));
+        footer.appendChild(E('a', {href: 'https://github.com/cookorz1/arthur-firmware/blob/main/CHANGELOG.md', target: '_blank', rel: 'noopener noreferrer', 'class': 'arthur-version'}, 'v@ARTHUR_VERSION@ · by-cookorz'));
         footer.appendChild(E('span', {}, '京东云亚瑟 · AX1800 Pro'));
         footer.appendChild(E('span', {}, [E('i', {'class': 'arthur-dot'}), '管理会话已连接']));
         sidebar.appendChild(footer);
     }
 });
+

@@ -1,17 +1,23 @@
-# Arthur · 京东云亚瑟定制固件
+# jdy-cookorz · 京东云亚瑟定制固件
+
+<img src="package/arthur/files/www/luci-static/arthur/logo.svg" width="64" height="64" alt="cookorz C-Link Logo">
+
+**by-cookorz** · 固件定制与界面维护 · 当前源码版本见 [VERSION](VERSION)
+
+[更新日志](CHANGELOG.md) · [版本记录与发布方法](docs/VERSIONING.md) · [固定版本下载](https://github.com/cookorz1/arthur-firmware/releases) · [测试构建](https://github.com/cookorz1/arthur-firmware/actions)
 
 [![Build firmware](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml/badge.svg)](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml)
 
 面向 **京东云亚瑟 AX1800 Pro / JDCloud RE-SS-01** 的 OpenWrt 定制固件，基于 **LibWrt 25.12-nss**。集成双频 Wi-Fi、Argon 中文主题、iStore 应用商店、OpenClash、随身 WiFi USB 上网、网络质量检测，以及 BBR / NSS 兼容管理和内存面板。
 
-**当前进度：** 加速与内存版本已编译成功；新一版加入 jdy-cookorz 雪山风格管理界面、统一登录页和首页状态卡片。编译状态以 [GitHub Actions](https://github.com/cookorz1/arthur-firmware/actions) 为准，实际设备显示与性能仍需刷机验收。
+**当前进度：** 雪山界面基线（1.4.0 / Actions #12）已构建成功。本次 1.5.0-rc.1 增加 C-Link Logo、by-cookorz 署名和版本记录；源码修改不等于已经发布，构建状态见 Actions，正式下载见 Releases。实机验证结果与编译状态分开记录。
 
 ## 主要功能
 
 | 功能 | 内容 |
 | --- | --- |
 | 双频 Wi-Fi | 亚瑟原生 ath11k/IPQ6018 驱动、专用无线校准固件、2.4 GHz / 5 GHz AP、默认 WPA2-PSK |
-| Argon 界面 | 默认 Argon 主题，中文 LuCI，集成 Argon 配置插件 |
+| 定制界面 | 基于 Argon 的雪山首页、C-Link 标志、中文登录页、by-cookorz 署名、手机适配与深浅切换 |
 | iStore | 原版应用商店，按需安装应用；应用依赖仍需与当前固件兼容 |
 | OpenClash | 内置插件及构建时的 Mihomo ARM64 稳定核心，导入自己的配置后使用 |
 | 随身 WiFi USB 上网 | 按 CDC-ECM / RNDIS / CDC-NCM 驱动识别 USB 共享网络，跨品牌 DHCP 接入，不限 F50 |
@@ -175,3 +181,15 @@ GitHub 下载的是 ZIP，先解压再使用里面的 `.bin` 文件。
 - 登录：保留 LuCI 原有认证 POST、错误提示和会话机制，不记忆明文密码。雪山图片随固件本地提供，不依赖在线壁纸或 CDN。
 - 主题：右上角切换深浅色，选择保存在当前浏览器；此定制版本的颜色由 Arthur 样式统一控制，Argon 配置中的深浅模式不再覆盖它。
 - 构建检查：在桌面、平板和 390/320 像素窄屏自动执行真实首页代码，检查搜索、主题切换、登录表单与横向溢出。预览使用明确标注的样例数据，不能当成实机性能证明。
+
+
+
+## 品牌与版本
+
+本项目的固件定制与界面由 **by-cookorz** 维护；基于 LibWrt、LuCI、Argon 以及各插件，不改变上游项目的归属。
+
+[![Logo 方案](docs/assets/logo-options.png)](docs/assets/logo-options.svg)
+
+当前采用 A / C-Link：C 代表 cookorz，连接节点表示网络。B 为 JC 字母组合，C 为三节点连接方案，均为本地 SVG，无需在线字体或图片服务。
+
+版本号来自 [VERSION](VERSION)，完整更新内容见 [CHANGELOG](CHANGELOG.md)。GitHub 的 Actions 编号用于开发追踪；通过“Run workflow”勾选发布后，成功构建才会生成固定 Tag 和 Release，并附固件、SHA-256 与来源清单。详细步骤见 [版本记录与发布](docs/VERSIONING.md)。

@@ -2,7 +2,7 @@
 {% include("themes/" + theme + "/out_header_login") %}
 <main class="arthur-login">
     <section class="arthur-login-scene" aria-label="雪山风景">
-        <a class="arthur-logo" href="/"> <span class="arthur-mark" aria-hidden="true"></span> jdy-cookorz</a>
+        <a class="arthur-logo" href="/"> <span class="arthur-mark" aria-hidden="true"></span><span class="arthur-brand-copy"><strong>jdy-cookorz</strong><small>by-cookorz</small></span></a>
         <div class="arthur-login-copy"><span class="arthur-eyebrow">YOUR NETWORK. YOUR SPACE.</span>
             <h1>连接生活的<br>每一种可能。</h1><p>让网络管理，简单从容。</p>
         </div>
@@ -25,7 +25,7 @@
             </form>
             <p class="arthur-login-note">使用路由器管理员账号登录</p>
         </div>
-        <small class="arthur-login-footer">jdy-cookorz · Powered by LuCI / LibWrt</small>
+        <small class="arthur-login-footer">v@ARTHUR_VERSION@ · <b>by-cookorz</b><br>Powered by LuCI / LibWrt / Argon</small>
     </section>
 </main>
 <script>
@@ -39,3 +39,4 @@ document.getElementById('arthur-password-toggle').addEventListener('click', func
 });
 </script>
 </body></html>
+

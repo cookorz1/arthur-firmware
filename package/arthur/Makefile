@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-arthur
-PKG_VERSION:=1.4.0
+PKG_VERSION:=1.5.0
 PKG_RELEASE:=1
 PKG_LICENSE:=MIT
 
@@ -40,3 +40,4 @@ define Package/luci-app-arthur/install
 endef
 
 $(eval $(call BuildPackage,luci-app-arthur))
+

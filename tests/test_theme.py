@@ -27,6 +27,7 @@ class ThemeTests(unittest.TestCase):
         theme.integrate(self.source, ROOT, 'abc123')
         for name in ('header.ut', 'header_login.ut'):
             self.assertIn('theme.css?v=abc123', (self.templates/name).read_text())
+            self.assertIn('logo.svg?v=abc123', (self.templates/name).read_text())
         self.assertIn('arthur-shell-abc123', (self.templates/'footer.ut').read_text())
         self.assertEqual((self.resources/'arthur-shell-abc123.js').read_text(), 'shell')
 
@@ -40,6 +41,10 @@ class ThemeTests(unittest.TestCase):
         for token in ('method="post"', "http.getenv('REQUEST_URI')", 'name="luci_username"', 'name="luci_password"', 'if (fuser)', 'entityencode(duser, true)'):
             self.assertIn(token, text)
         self.assertNotIn('value="password"', text)
+        self.assertNotIn('@ARTHUR_VERSION@', text)
+        self.assertIn((ROOT/'VERSION').read_text().strip(), text)
+        self.assertIn('by-cookorz', text)
 
     def test_untrusted_build_identifier_is_rejected(self):
         with self.assertRaises(ValueError): theme.integrate(self.source, ROOT, '"><script>')
+

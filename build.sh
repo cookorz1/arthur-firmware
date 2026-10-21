@@ -3,6 +3,8 @@ set -Eeuo pipefail
 TASK_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$TASK_ROOT"
 source versions.env
+BUILD_ID="${GITHUB_SHA:-local-$(date -u +%Y%m%d%H%M%S)}"
+python3 "$TASK_ROOT/scripts/firmware_release.py" check "$TASK_ROOT"
 mkdir -p logs output
 exec > >(tee -a logs/build.log) 2>&1
 trap 'echo "Build failed at line $LINENO. Inspect logs/build.log."' ERR
@@ -53,8 +55,9 @@ for symbol in "${required[@]}"; do
     }
 done
 cp -a "$TASK_ROOT/files" .
-python3 "$TASK_ROOT/scripts/integrate_performance.py" integrate . "${GITHUB_SHA:-local-$(date -u +%Y%m%d%H%M%S)}"
-python3 "$TASK_ROOT/scripts/integrate_theme.py" . "$TASK_ROOT" "${GITHUB_SHA:-local-$(date -u +%Y%m%d%H%M%S)}"
+python3 "$TASK_ROOT/scripts/firmware_release.py" stamp "$TASK_ROOT" . "$BUILD_ID"
+python3 "$TASK_ROOT/scripts/integrate_performance.py" integrate . "$BUILD_ID"
+python3 "$TASK_ROOT/scripts/integrate_theme.py" . "$TASK_ROOT" "$BUILD_ID"
 sh -n package/custom/luci-app-openclash/root/etc/init.d/openclash
 # Initialise root/password only in the clean image; retained sysupgrade settings win.
 python3 "$TASK_ROOT/scripts/prepare_defaults.py" package/base-files/files/etc/shadow files/etc/shadow
@@ -138,12 +141,14 @@ required_files = [
     'usr/libexec/arthur-dashboard',
     'etc/init.d/arthur-performance', 'etc/init.d/qca-nss-ecm',
     'etc/uci-defaults/91-arthur-performance', 'etc/arthur-build',
+    'etc/arthur-version', 'etc/arthur-release.json',
     'etc/hotplug.d/net/90-f50', 'etc/config/arthur',
     'etc/uci-defaults/99-arthur-wireless', 'etc/uci-defaults/zz-arthur-custom',
     'www/luci-static/resources/view/arthur/network.js',
     'www/luci-static/resources/view/arthur/performance.js',
     'www/luci-static/resources/view/arthur/dashboard.js',
     'www/luci-static/arthur/theme.css', 'www/luci-static/arthur/mountain.png',
+    'www/luci-static/arthur/logo.svg',
     'usr/share/luci/menu.d/luci-app-arthur.json',
     'usr/share/rpcd/acl.d/luci-app-arthur.json'
 ]
@@ -161,6 +166,11 @@ if 'arthur-login' not in login or 'luci_username' not in login or 'luci_password
     raise SystemExit('Arthur login template or LuCI authentication form missing')
 if not list((root / 'www/luci-static/resources').glob('arthur-shell-*.js')):
     raise SystemExit('Versioned Arthur navigation shell missing')
+if '@ARTHUR_VERSION@' in login or 'by-cookorz' not in login:
+    raise SystemExit('Login version/author stamping missing')
+version = (root / 'etc/arthur-version').read_text().strip()
+if version not in login or json.loads((root/'etc/arthur-release.json').read_text())['version'] != version:
+    raise SystemExit('UI version differs from firmware version')
 menu = json.loads((root / 'usr/share/luci/menu.d/luci-app-arthur.json').read_text())
 for entry in menu.values():
     view = entry.get('action', {}).get('path', '')
@@ -202,4 +212,6 @@ with (output / 'SHA256SUMS').open('w') as stream:
         stream.write(hashlib.sha256(image.read_bytes()).hexdigest() + '  ' + image.name + '\n')
 (output / 'BUILD_STATUS.txt').write_text('Compiled successfully. Hardware boot, partition compatibility, USB uplink and application behavior still require device testing.\n')
 PY
+python3 "$TASK_ROOT/scripts/firmware_release.py" prepare "$TASK_ROOT" "$TASK_ROOT/output" "$BUILD_ID"
 echo 'Build complete. Artifacts are in output/; confirm the device partition layout before flashing.'
+

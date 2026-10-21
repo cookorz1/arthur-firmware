@@ -1,6 +1,11 @@
-name: Build Arthur WiFi Argon F50 iStore
+name: Build jdy-cookorz Arthur firmware
 on:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: '构建成功后发布 VERSION 对应的 GitHub Release（已有版本不覆盖）'
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -14,6 +19,9 @@ on:
       - 'scripts/**'
       - 'required-packages.txt'
       - 'feeds.lock.json'
+      - 'VERSION'
+      - 'CHANGELOG.md'
+      - 'docs/**'
 permissions:
   contents: read
 concurrency:
@@ -25,8 +33,20 @@ jobs:
     timeout-minutes: 360
     env:
       BUILD_JOBS: '2'
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      artifact: ${{ steps.version.outputs.artifact }}
     steps:
       - uses: actions/checkout@v7
+      - name: Check version and changelog
+        id: version
+        run: |
+          version=$(python3 scripts/firmware_release.py check .)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "artifact=jdy-cookorz-v$version-${GITHUB_SHA:0:12}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          printf '## jdy-cookorz v%s · by-cookorz\n\n- Source: `%s`\n- Release publication requested: `%s`\n' "$version" "$GITHUB_SHA" "$PUBLISH_RELEASE" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          PUBLISH_RELEASE: ${{ inputs.publish_release || false }}
       - name: Test network panel and persistent USB control
         run: |
           bash -n build.sh
@@ -67,7 +87,7 @@ jobs:
       - name: Upload compiled firmware
         uses: actions/upload-artifact@v7
         with:
-          name: Arthur-Enhanced-WiFi-Argon-F50-iStore-${{ github.run_number }}
+          name: ${{ steps.version.outputs.artifact }}
           path: output/
           if-no-files-found: error
           retention-days: 30
@@ -79,3 +99,21 @@ jobs:
           path: logs/
           if-no-files-found: ignore
           retention-days: 14
+  publish:
+    name: Publish versioned release
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_release && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: ${{ needs.build.outputs.artifact }}
+          path: output/
+      - name: Verify assets and publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish_release.py output
+

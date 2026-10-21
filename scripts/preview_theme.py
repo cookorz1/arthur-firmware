@@ -39,10 +39,10 @@ window.rpc={declare:spec=>async()=>{
 }};
 '''.replace('MENU', json.dumps(menu,ensure_ascii=False))
 navigation=''.join('<li class="'+('slide' if c else '')+'"><a class="'+('menu' if c else 'food')+' '+('active' if n=='overview' else '')+'" href="/cgi-bin/luci/admin/'+n+'">'+t+'</a>'+('<ul class="slide-menu">'+''.join('<li><a href="/cgi-bin/luci/admin/'+n+'/'+a+'">'+b+'</a></li>' for a,b in c)+'</ul>' if c else '')+'</li>' for n,t,c in groups)
-head='<!doctype html><html lang="zh-CN" data-arthur-theme="light"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>jdy-cookorz · 界面预览</title>' + '<style>' + Path(sys.argv[1]).read_text(encoding='utf-8') + '</style><style>' + (repo/'package/arthur/files/www/luci-static/arthur/theme.css').read_text(encoding='utf-8').replace('url(mountain.png)', 'url('+(repo/'package/arthur/files/www/luci-static/arthur/mountain.png').resolve().as_uri()+')') + '</style>'
+head='<!doctype html><html lang="zh-CN" data-arthur-theme="light"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>jdy-cookorz · 界面预览</title>' + '<style>' + Path(sys.argv[1]).read_text(encoding='utf-8') + '</style><style>' + (repo/'package/arthur/files/www/luci-static/arthur/theme.css').read_text(encoding='utf-8').replace('url(logo.svg)', 'url('+(repo/'package/arthur/files/www/luci-static/arthur/logo.svg').resolve().as_uri()+')').replace('url(mountain.png)', 'url('+(repo/'package/arthur/files/www/luci-static/arthur/mountain.png').resolve().as_uri()+')') + '</style>'
 body='<body class="logged-in"><div class="main"><aside class="main-left" id="mainmenu"><div class="sidenav-header"><a class="brand">jdy-cookorz</a></div><ul class="nav">'+navigation+'</ul></aside><div class="main-right"><header class="bg-primary"><div class="fill"><div class="container"><div class="flex1"><a class="showSide">☰</a><a class="brand">jdy-cookorz</a></div><div id="indicators" class="status"></div></div></div></header><div class="darkMask"></div><div id="maincontent"><div class="container"><div style="font-size:11px;color:#8091a9">界面预览 · 示例数据 · 非设备实时状态</div><div id="view"></div></div></div></div></div>'
 dashboard=(assets/'view/arthur/dashboard.js').read_text(encoding='utf-8')
-shell=(assets/'arthur-shell.js').read_text(encoding='utf-8')
+shell=(assets/'arthur-shell.js').read_text(encoding='utf-8').replace('@ARTHUR_VERSION@', (repo/'VERSION').read_text().strip())
 boot='''
 (async function(){
  var v=(new Function(DASHBOARD))(); var data=await v.load(); document.getElementById('view').replaceWith(await v.render(data));
@@ -53,9 +53,10 @@ boot='''
 })().catch(e=>{window.previewError=e.stack;document.body.appendChild(E('pre',{},e.stack));console.error(e);});
 '''.replace('DASHBOARD',json.dumps(dashboard,ensure_ascii=False)).replace('SHELL',json.dumps(shell,ensure_ascii=False))
 (preview/'dashboard.html').write_text(head+body+'<script>'+harness+boot+'</script></body></html>',encoding='utf-8')
-login=(repo/'package/arthur/theme/sysauth.ut').read_text(encoding='utf-8')
+login=(repo/'package/arthur/theme/sysauth.ut').read_text(encoding='utf-8').replace('@ARTHUR_VERSION@', (repo/'VERSION').read_text().strip())
 login=re.sub(r'{#.*?#}|{%.*?%}', '', login,flags=re.S)
 login=re.sub(r'{{.*?}}',lambda m:'root' if 'duser' in m[0] else '/preview/login.html' if 'REQUEST_URI' in m[0] else '账号或密码错误，请重试。',login,flags=re.S)
 login=re.sub(r'<div class="alert-message error".*?</div>','',login)
 (preview/'login.html').write_text(head+'<body>'+login,encoding='utf-8')
 print('Preview pages generated')
+

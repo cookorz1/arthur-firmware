@@ -16,6 +16,9 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         await page.waitForFunction(()=>window.previewReady===true || window.previewError);
         assert.equal(await page.evaluate(()=>window.previewError || ''),'');
         assert.equal(errors.length,0,errors.join('\n'));
+        const version=fs.readFileSync('VERSION','utf8').trim();
+        assert.ok((await page.locator('.sidenav-header .brand').innerText()).includes('by-cookorz'));
+        assert.ok((await page.locator('.arthur-side-footer').innerText()).includes('v'+version));
         await page.screenshot({path:path.join(dir,'dashboard-desktop.png'),fullPage:true});
         assert.ok((await page.locator('.arthur-hero').innerText()).includes('WAN + USB'));
         assert.equal(await page.locator('.arthur-port').count(),5);
@@ -46,6 +49,9 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         }
         await page.setViewportSize({width:1536,height:1000});
         await open('login');
+        assert.ok((await page.locator('.arthur-login-footer').innerText()).includes('v'+version));
+        assert.ok((await page.locator('.arthur-login-footer').innerText()).includes('by-cookorz'));
+        assert.ok(!(await page.locator('body').innerText()).includes('@ARTHUR_VERSION@'));
         assert.equal(await page.locator('form').getAttribute('method'),'post');
         await page.getByLabel('管理密码',{exact:true}).fill('preview-only');
         await page.getByRole('button',{name:'显示密码',exact:true}).click();
@@ -61,3 +67,4 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         console.log('Theme rendering, WAN/USB cards, real view execution, dark toggle, menu search, login form and five viewport checks passed.');
     } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
+

@@ -8,9 +8,13 @@ import sys
 def integrate(source, project, build_id):
     if not re.fullmatch(r'[a-zA-Z0-9_-]{1,64}', build_id):
         raise ValueError('Invalid theme build ID')
+    version = (project / 'VERSION').read_text().strip()
+    if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+(?:-rc\.[0-9]+)?', version):
+        raise ValueError('Invalid theme version')
     templates = source / 'feeds/luci/themes/luci-theme-argon/ucode/template/themes/argon'
     link = ('<script>try{document.documentElement.dataset.arthurTheme='
             'localStorage.getItem("arthur-theme") === "dark" ? "dark" : "light"}catch(e){}</script>\n'
+            f'<link rel="icon" type="image/svg+xml" href="/luci-static/arthur/logo.svg?v={build_id}">\n'
             f'<link rel="stylesheet" href="/luci-static/arthur/theme.css?v={build_id}">\n')
     for name in ('header.ut', 'header_login.ut'):
         path = templates / name
@@ -29,10 +33,13 @@ def integrate(source, project, build_id):
         raise ValueError('Argon menu anchor changed')
     text = text.replace("L.require('menu-argon')", f"L.require('menu-argon'); L.require('arthur-shell-{build_id}')")
     path.write_text(text, encoding='utf-8')
-    shutil.copyfile(project / 'package/arthur/theme/sysauth.ut', templates / 'sysauth.ut')
+    login = (project / 'package/arthur/theme/sysauth.ut').read_text(encoding='utf-8')
+    (templates / 'sysauth.ut').write_text(login.replace('@ARTHUR_VERSION@', version), encoding='utf-8')
     resources = source / 'package/custom/arthur/files/www/luci-static/resources'
-    shutil.copyfile(resources / 'arthur-shell.js', resources / f'arthur-shell-{build_id}.js')
+    shell = (resources / 'arthur-shell.js').read_text(encoding='utf-8')
+    (resources / f'arthur-shell-{build_id}.js').write_text(shell.replace('@ARTHUR_VERSION@', version), encoding='utf-8')
 
 
 if __name__ == '__main__':
     integrate(pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), sys.argv[3])
+
