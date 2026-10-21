@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-arthur
 PKG_VERSION:=1.5.0
-PKG_RELEASE:=2
+PKG_RELEASE:=3
 PKG_LICENSE:=MIT
 
 include $(INCLUDE_DIR)/package.mk

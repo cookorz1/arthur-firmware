@@ -17,6 +17,19 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         assert.equal(await page.evaluate(()=>window.previewError || ''),'');
         assert.equal(errors.length,0,errors.join('\n'));
         const version=fs.readFileSync('VERSION','utf8').trim();
+        async function checkTabIdentity() {
+            assert.equal(await page.title(),'jdy-cookorz');
+            const icons=await page.locator('link[rel="icon"]').evaluateAll(nodes=>nodes.map(n=>({href:n.href,type:n.type})));
+            assert.equal(icons.length,2);
+            assert.ok(icons.every(i=>!i.href.includes('/argon/')));
+            const svg=icons.find(i=>i.type==='image/svg+xml');
+            assert.ok(svg&&svg.href.includes('/branding/favicon.svg'));
+            assert.equal(await page.evaluate(async url=>{
+                const image=new Image();
+                return await new Promise(resolve=>{image.onload=()=>resolve(image.naturalWidth>0);image.onerror=()=>resolve(false);image.src=url;});
+            },svg.href),true,'Embedded author-avatar favicon must decode');
+        }
+        await checkTabIdentity();
         async function checkAvatar(selector) {
             const result=await page.locator(selector).first().evaluate(async element=>{
                 const background=getComputedStyle(element).backgroundImage;
@@ -67,6 +80,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         }
         await page.setViewportSize({width:1536,height:1000});
         await open('login');
+        await checkTabIdentity();
         await checkAvatar('.arthur-mark');
         assert.ok((await page.locator('.arthur-login-footer').innerText()).includes('v'+version));
         assert.ok((await page.locator('.arthur-login-footer').innerText()).includes('by-cookorz'));

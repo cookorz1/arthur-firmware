@@ -148,7 +148,7 @@ required_files = [
     'www/luci-static/resources/view/arthur/performance.js',
     'www/luci-static/resources/view/arthur/dashboard.js',
     'www/luci-static/arthur/theme.css', 'www/luci-static/arthur/mountain.png',
-    'www/luci-static/arthur/avatar.jpg',
+    'www/luci-static/arthur/avatar.jpg', 'www/luci-static/arthur/favicon.svg',
     'usr/share/luci/menu.d/luci-app-arthur.json',
     'usr/share/rpcd/acl.d/luci-app-arthur.json'
 ]
@@ -161,8 +161,16 @@ templates = root / 'usr/share/ucode/luci/template/themes/argon'
 for name in ('header.ut', 'header_login.ut'):
     if '/luci-static/arthur/theme.css?v=' not in (templates / name).read_text():
         raise SystemExit('Arthur skin missing from ' + name)
-    if 'type="image/jpeg" href="/luci-static/arthur/avatar.jpg?v=' not in (templates / name).read_text():
-        raise SystemExit('Author avatar favicon missing from ' + name)
+metadata = (templates/'head_meta.ut').read_text()
+if '<title>jdy-cookorz</title>' not in metadata or 'favicon.svg?v=' not in metadata or ' - LuCI' in metadata or '{{ media }}/icon/' in metadata:
+    raise SystemExit('Arthur browser title/favicon missing or old Argon icons retained')
+if '@ARTHUR_BUILD@' in metadata:
+    raise SystemExit('Browser metadata build stamping missing')
+import base64, xml.etree.ElementTree as ET
+favicon = ET.fromstring((root/'www/luci-static/arthur/favicon.svg').read_text())
+embedded = favicon.find('{http://www.w3.org/2000/svg}image').attrib['href']
+if not embedded.startswith('data:image/jpeg;base64,') or base64.b64decode(embedded.split(',',1)[1]) != (root/'www/luci-static/arthur/avatar.jpg').read_bytes():
+    raise SystemExit('Favicon does not embed the original author avatar')
 style = (root/'www/luci-static/arthur/theme.css').read_text()
 if '@ARTHUR_BUILD@' in style or 'avatar.jpg?v=' not in style:
     raise SystemExit('Author avatar CSS stamping missing')
@@ -206,7 +214,7 @@ for relative in firmware_files:
     if not (root / relative).is_file():
         raise SystemExit('Ath11k runtime firmware file missing: ' + relative)
 (output / 'feature-checks.json').write_text(json.dumps({
-    'custom_files': required_files, 'argon_assets': True, 'avatar_sha256': hashlib.sha256(avatar.read_bytes()).hexdigest(),
+    'custom_files': required_files, 'argon_assets': True, 'tab_branding': 'jdy-cookorz', 'avatar_sha256': hashlib.sha256(avatar.read_bytes()).hexdigest(),
     'ath11k_firmware_files': firmware_files, 'root_password_sha512': True,
     'openclash_guard_hooks': 3, 'versioned_views': True,
     'performance_modules': ['tcp_bbr', 'sch_fq', 'zram'],

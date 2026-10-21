@@ -1,4 +1,6 @@
+import base64
 import importlib.util
+import xml.etree.ElementTree as ET
 import pathlib
 import tempfile
 import unittest
@@ -19,6 +21,7 @@ class ThemeTests(unittest.TestCase):
         for name in ('header.ut', 'header_login.ut'):
             (self.templates / name).write_text("<head>mode = cfg.get_first('argon', 'global', 'mode');</head>")
         (self.templates / 'footer.ut').write_text("L.require('menu-argon')")
+        (self.templates / 'head_meta.ut').write_text('<title>{{ hostname }} - LuCI</title><link rel="icon" href="/argon/icon.png">')
         self.resources = self.source / 'package/custom/arthur/files/www/luci-static/resources'
         self.resources.mkdir(parents=True)
         (self.resources / 'arthur-shell.js').write_text('shell')
@@ -27,7 +30,6 @@ class ThemeTests(unittest.TestCase):
         theme.integrate(self.source, ROOT, 'abc123')
         for name in ('header.ut', 'header_login.ut'):
             self.assertIn('theme.css?v=abc123', (self.templates/name).read_text())
-            self.assertIn('avatar.jpg?v=abc123', (self.templates/name).read_text())
         style = (self.source/'package/custom/arthur/files/www/luci-static/arthur/theme.css').read_text()
         self.assertIn('avatar.jpg?v=abc123', style)
         self.assertNotIn('@ARTHUR_BUILD@', style)
@@ -48,6 +50,29 @@ class ThemeTests(unittest.TestCase):
         self.assertNotIn('@ARTHUR_VERSION@', text)
         self.assertIn((ROOT/'VERSION').read_text().strip(), text)
         self.assertIn('by-cookorz', text)
+
+    def test_browser_identity_replaces_upstream_icons_and_preserves_original_avatar(self):
+        theme.integrate(self.source, ROOT, 'abc123')
+        head = (self.templates/'head_meta.ut').read_text(encoding='utf-8')
+        self.assertIn('<title>jdy-cookorz</title>', head)
+        self.assertIn('favicon.svg?v=abc123', head)
+        self.assertIn('avatar.jpg?v=abc123', head)
+        self.assertIn('content="jdy-cookorz"', head)
+        self.assertNotIn(' - LuCI', head)
+        self.assertNotIn('/argon/', head)
+        self.assertNotIn('rel="manifest"', head)
+        self.assertNotIn('@ARTHUR_BUILD@', head)
+        icon_path = self.source/'package/custom/arthur/files/www/luci-static/arthur/favicon.svg'
+        icon = ET.fromstring(icon_path.read_text())
+        href = icon.find('{http://www.w3.org/2000/svg}image').attrib['href']
+        self.assertTrue(href.startswith('data:image/jpeg;base64,'))
+        original = (ROOT/'package/arthur/files/www/luci-static/arthur/avatar.jpg').read_bytes()
+        self.assertEqual(base64.b64decode(href.split(',',1)[1]), original)
+
+    def test_changed_upstream_metadata_fails_before_shipping_stale_branding(self):
+        (self.templates/'head_meta.ut').write_text('<title>Changed upstream</title>')
+        with self.assertRaisesRegex(ValueError, 'metadata title'):
+            theme.integrate(self.source, ROOT, 'abc123')
 
     def test_untrusted_build_identifier_is_rejected(self):
         with self.assertRaises(ValueError): theme.integrate(self.source, ROOT, '"><script>')

@@ -1,4 +1,5 @@
 """Apply the Arthur skin to the pinned Argon templates without replacing LuCI auth."""
+import base64
 import pathlib
 import re
 import shutil
@@ -14,12 +15,25 @@ def integrate(source, project, build_id):
     templates = source / 'feeds/luci/themes/luci-theme-argon/ucode/template/themes/argon'
     link = ('<script>try{document.documentElement.dataset.arthurTheme='
             'localStorage.getItem("arthur-theme") === "dark" ? "dark" : "light"}catch(e){}</script>\n'
-            f'<link rel="icon" type="image/jpeg" href="/luci-static/arthur/avatar.jpg?v={build_id}">\n'
             f'<link rel="stylesheet" href="/luci-static/arthur/theme.css?v={build_id}">\n')
     style_dir = source / 'package/custom/arthur/files/www/luci-static/arthur'
     style_dir.mkdir(parents=True, exist_ok=True)
     style = (project / 'package/arthur/files/www/luci-static/arthur/theme.css').read_text(encoding='utf-8')
     (style_dir / 'theme.css').write_text(style.replace('@ARTHUR_BUILD@', build_id), encoding='utf-8')
+    # Replace the shared metadata rather than competing with Argon's sized PNG icons.
+    metadata = templates / 'head_meta.ut'
+    original = metadata.read_text(encoding='utf-8')
+    if original.count('<title>') != 1 or original.count(' - LuCI</title>') != 1:
+        raise ValueError('Argon metadata title anchor changed')
+    head = (project / 'package/arthur/theme/head_meta.ut').read_text(encoding='utf-8')
+    metadata.write_text(head.replace('@ARTHUR_BUILD@', build_id), encoding='utf-8')
+    avatar = (project / 'package/arthur/files/www/luci-static/arthur/avatar.jpg').read_bytes()
+    encoded = base64.b64encode(avatar).decode('ascii')
+    # An SVG wrapper embeds the original JPEG bytes, with no external image requests.
+    icon = ('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">'
+            '<image width="64" height="64" preserveAspectRatio="xMidYMid meet" '
+            'href="data:image/jpeg;base64,' + encoded + '"/></svg>\n')
+    (style_dir / 'favicon.svg').write_text(icon, encoding='utf-8')
     for name in ('header.ut', 'header_login.ut'):
         path = templates / name
         text = path.read_text(encoding='utf-8')

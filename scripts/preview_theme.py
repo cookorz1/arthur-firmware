@@ -39,7 +39,16 @@ window.rpc={declare:spec=>async()=>{
 }};
 '''.replace('MENU', json.dumps(menu,ensure_ascii=False))
 navigation=''.join('<li class="'+('slide' if c else '')+'"><a class="'+('menu' if c else 'food')+' '+('active' if n=='overview' else '')+'" href="/cgi-bin/luci/admin/'+n+'">'+t+'</a>'+('<ul class="slide-menu">'+''.join('<li><a href="/cgi-bin/luci/admin/'+n+'/'+a+'">'+b+'</a></li>' for a,b in c)+'</ul>' if c else '')+'</li>' for n,t,c in groups)
-head='<!doctype html><html lang="zh-CN" data-arthur-theme="light"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>jdy-cookorz · 界面预览</title>' + '<style>' + Path(sys.argv[1]).read_text(encoding='utf-8') + '</style><style>' + (repo/'package/arthur/files/www/luci-static/arthur/theme.css').read_text(encoding='utf-8').replace('url(avatar.jpg?v=@ARTHUR_BUILD@)', 'url('+(repo/'package/arthur/files/www/luci-static/arthur/avatar.jpg').resolve().as_uri()+')').replace('url(mountain.png)', 'url('+(repo/'package/arthur/files/www/luci-static/arthur/mountain.png').resolve().as_uri()+')') + '</style>'
+import base64
+icon_dir = preview/'branding'
+icon_dir.mkdir(exist_ok=True)
+encoded = base64.b64encode((repo/'package/arthur/files/www/luci-static/arthur/avatar.jpg').read_bytes()).decode('ascii')
+(icon_dir/'favicon.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><image width="64" height="64" href="data:image/jpeg;base64,'+encoded+'"/></svg>',encoding='utf-8')
+metadata = (repo/'package/arthur/theme/head_meta.ut').read_text(encoding='utf-8').replace('{{ bar_color }}','#307dff').replace('@ARTHUR_BUILD@','preview')
+metadata = re.sub(r'{#.*?#}', '', metadata, flags=re.S)
+metadata = metadata.replace('/luci-static/arthur/favicon.svg?v=preview', (icon_dir/'favicon.svg').resolve().as_uri())
+metadata = metadata.replace('/luci-static/arthur/avatar.jpg?v=preview', (repo/'package/arthur/files/www/luci-static/arthur/avatar.jpg').resolve().as_uri())
+head='<!doctype html><html lang="zh-CN" data-arthur-theme="light"><head>' + metadata + '<style>' + Path(sys.argv[1]).read_text(encoding='utf-8') + '</style><style>' + (repo/'package/arthur/files/www/luci-static/arthur/theme.css').read_text(encoding='utf-8').replace('url(avatar.jpg?v=@ARTHUR_BUILD@)', 'url('+(repo/'package/arthur/files/www/luci-static/arthur/avatar.jpg').resolve().as_uri()+')').replace('url(mountain.png)', 'url('+(repo/'package/arthur/files/www/luci-static/arthur/mountain.png').resolve().as_uri()+')') + '</style>' + '</head>'
 body='<body class="logged-in"><div class="main"><aside class="main-left" id="mainmenu"><div class="sidenav-header"><a class="brand">jdy-cookorz</a></div><ul class="nav">'+navigation+'</ul></aside><div class="main-right"><header class="bg-primary"><div class="fill"><div class="container"><div class="flex1"><a class="showSide">☰</a><a class="brand">jdy-cookorz</a></div><div id="indicators" class="status"></div></div></div></header><div class="darkMask"></div><div id="maincontent"><div class="container"><div style="font-size:11px;color:#8091a9">界面预览 · 示例数据 · 非设备实时状态</div><div id="view"></div></div></div></div></div>'
 dashboard=(assets/'view/arthur/dashboard.js').read_text(encoding='utf-8')
 shell=(assets/'arthur-shell.js').read_text(encoding='utf-8').replace('@ARTHUR_VERSION@', (repo/'VERSION').read_text().strip())

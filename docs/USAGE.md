@@ -89,3 +89,21 @@ Linux 会自动回收缓存，内存占用高不等于内存耗尽，应关注 *
 
 参考：[Linux TCP 设置](https://docs.kernel.org/networking/ip-sysctl.html)、[缓存回收说明](https://docs.kernel.org/admin-guide/sysctl/vm.html#drop-caches)、[ZRAM 文档](https://docs.kernel.org/admin-guide/blockdev/zram.html)。
 
+
+## F50 直连更快，经亚瑟只有约 300 Mbps
+
+我会先对照测速路径，再决定调整哪一层。请固定 F50 的位置、同一测速设备和测速节点，尽量在相近时间连续比较；蜂窝网络本身也会波动。
+
+| 对照结果 | 优先检查 |
+| --- | --- |
+| 亚瑟网线测速能到 400–500 Mbps，5 GHz Wi-Fi 只有约 300 Mbps | 无线信号、终端协商速率、实际带宽是否为 80 MHz、信道干扰及终端能力 |
+| 亚瑟网线和 Wi-Fi 都约 300 Mbps | USB 枚举速度、F50 的 USB 共享模式、路由负载和实际加速状态 |
+| F50 USB 直连电脑也慢，但连接 F50 自己的 Wi-Fi 更快 | F50 的 USB 共享链路、数据线、USB 模式及驱动；两种接入路径要分别测 |
+
+“网络 → 亚瑟网络面板”中 **USB 总线速率**若为 `480 Mbps`，表示 USB 2.0 High-Speed；`5000 Mbps` 表示 USB 3.0 SuperSpeed。两者是总线速度，不能当作互联网实测速率。也可在 SSH 中执行 `lsusb -t` 查看。
+
+OpenClash 完全关闭后，还应在“加速与内存”看 NSS 的实际状态；SQM / QoS、手动关闭 NSS 等设置也会影响加速。USB 这条连接是否实际被 NSS 接管要结合运行计数确认，不能只看“已加载”。测速时可用 `top` 后按 `1` 查看每核负载（以当前 top 支持的显示方式为准）；总占用不高也可能存在单核处理瓶颈。
+
+先完成对照再调整。BBR 作用于路由器本机 TCP 连接，无法解决 USB 2.0 或无线链路的带宽瓶颈；强行绕过 OpenClash / NSS 兼容保护也不能替代排查。
+
+参考：[Linux USB 速度定义](https://docs.kernel.org/driver-api/usb/usb.html)、[OpenWrt 无线带宽设置](https://openwrt.org/docs/guide-user/network/wifi/basic)、[Linux 网络多核处理](https://docs.kernel.org/networking/scaling.html)。

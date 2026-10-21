@@ -1,0 +1,14 @@
+{# Arthur browser identity. Authentication and upstream credits remain in LuCI/Argon. #}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jdy-cookorz</title>
+<meta name="application-name" content="jdy-cookorz">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="jdy-cookorz">
+<meta name="theme-color" content="{{ bar_color }}">
+<link rel="icon" type="image/jpeg" href="/luci-static/arthur/avatar.jpg?v=@ARTHUR_BUILD@">
+<link rel="icon" type="image/svg+xml" sizes="any" href="/luci-static/arthur/favicon.svg?v=@ARTHUR_BUILD@">
+<link rel="apple-touch-icon" href="/luci-static/arthur/avatar.jpg?v=@ARTHUR_BUILD@">
