@@ -35,10 +35,10 @@ class ArchiveTests(unittest.TestCase):
         self.item['artifact_sha256'] = archive.digest(path)
         return path, images, sums
 
-    def test_checked_in_plan_identifies_all_seven_successful_builds(self):
+    def test_checked_in_plan_identifies_all_nine_successful_builds(self):
         plan = archive.read_plan(ROOT/'.github/release-archive.json')
-        self.assertEqual([x['run_number'] for x in plan['releases']], [4,5,6,7,8,12,14])
-        self.assertEqual(plan['releases'][-1]['tag'], 'v1.5.0-rc.2')
+        self.assertEqual([x['run_number'] for x in plan['releases']], [4,5,6,7,8,12,14,15,16])
+        self.assertEqual(plan['releases'][-1]['tag'], 'v1.5.0-rc.4')
 
     def test_only_the_pinned_successful_run_and_artifact_are_accepted(self):
         i=self.item

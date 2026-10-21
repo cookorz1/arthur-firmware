@@ -120,6 +120,42 @@
         "统一使用 cookorz 头像作为登录页、侧栏、右上角及标签页图标，加入 by-cookorz 署名。",
         "整理项目首页、更新日志和使用文档，统一固件版本、文件名与来源记录。"
       ]
+    },
+    {
+      "tag": "v1.5.0-rc.3",
+      "version": "1.5.0-rc.3",
+      "package_version": "1.5.0",
+      "title": "v1.5.0-rc.3 · 标签页品牌与头像图标修复",
+      "kind": "versioned",
+      "source_commit": "b1456497a6dc5c95700fd2e421c1e53616a9589c",
+      "run_id": 39564528452,
+      "run_number": 15,
+      "artifact_id": 12335625830,
+      "artifact_name": "jdy-cookorz-v1.5.0-rc.3-b1456497a6dc-15",
+      "artifact_sha256": "c8ca72be77901af5e807e3b3851b58072dc9b60e0e3463b4495fb271e34b9024",
+      "changes": [
+        "浏览器标签页标题统一为 jdy-cookorz，登录页和后台共用作者头像图标，清除原 Argon 图标及清单引用。",
+        "保留雪山中文界面、iStore、OpenClash、Wi-Fi、USB 网络面板与原有加速保护，增加标题及图标一致性检查。"
+      ]
+    },
+    {
+      "tag": "v1.5.0-rc.4",
+      "version": "1.5.0-rc.4",
+      "package_version": "1.5.0",
+      "title": "v1.5.0-rc.4 · USB 软件分载与 OpenClash 兼容保护",
+      "kind": "versioned",
+      "source_commit": "0a712e63c0d9db085f64419a31ed7a83fca6aad5",
+      "run_id": 39605685842,
+      "run_number": 16,
+      "artifact_id": 12356717283,
+      "artifact_name": "jdy-cookorz-v1.5.0-rc.4-0a712e63c0d9-16",
+      "artifact_sha256": "0e03a01d595b8b90dd51d6d4e9b9d282cbc8efbce21ef4706ad4aa9511ba95d2",
+      "changes": [
+        "新增 NSS 自动兼容 / 软件流量分载 / 关闭三种模式；USB 用户可手动选择软件分载，保留原设置。",
+        "软件模式先卸载 ECM；切回 NSS 或开启 OpenClash 前撤销软件分载规则。SQM/QoS 同样触发保护，条件解除后恢复所选模式。",
+        "首页和性能页区分规则已启用、代理保护、未就绪与冲突状态；补齐模块缺失、规则失败和 ECM 退出失败的回退测试。",
+        "所有行为测试、浏览器界面检查和编译校验通过。此前手动对照反馈软件分载突破 400 Mbps；新镜像的完整实机共存验收仍待完成，不保证固定网速。"
+      ]
     }
   ]
 }
