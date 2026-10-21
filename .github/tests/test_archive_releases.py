@@ -93,11 +93,18 @@ class ArchiveTests(unittest.TestCase):
                 return [] if not state['exists'] else [{'id':12,'tag_name':self.item['tag'],'draft':state['draft'],
                     'prerelease':not state['draft'],'target_commitish':'0'*40 if wrong_source else self.item['source_commit'],
                     'name':self.item['title'],'body':'Fixture release notes\n'}]
+            if path.endswith('/releases/12'):
+                return api('repos/x/releases?per_page=100')[0]
             if '/assets?' in path:return state['uploaded']
             raise AssertionError(path)
         def command(*args,**kwargs):
             calls.append(args)
-            if args[:2]==('release','create'):state['exists']=True
+            if args[:3]==('api','--method','POST'):
+                request=json.loads(Path(args[-1]).read_text(encoding='utf-8'))
+                self.assertEqual(request['target_commitish'],self.item['source_commit'])
+                self.assertTrue(request['draft']);self.assertTrue(request['prerelease'])
+                state['exists']=True
+                return json.dumps(api('repos/x/releases?per_page=100')[0])
             elif args[:2]==('release','upload'):state['uploaded']=uploaded[:1] if partial else uploaded
             elif args[:2]==('release','edit'):state['draft']=False
             else:raise AssertionError(args)
@@ -108,7 +115,8 @@ class ArchiveTests(unittest.TestCase):
         with patch.object(archive,'api',side_effect=api),patch.object(archive,'command',side_effect=command):
             archive.publish(self.item,paths,note,'cookorz1/arthur-firmware')
         self.assertFalse(state['draft'])
-        self.assertEqual([c[1] for c in calls],['create','upload','edit'])
+        self.assertEqual([c[0] for c in calls],['api','release','release'])
+        self.assertEqual([c[1] for c in calls[1:]],['upload','edit'])
         self.assertIn('--prerelease=true',calls[-1]);self.assertIn('--latest=false',calls[-1])
 
     def test_partial_upload_retains_draft_and_never_publishes(self):

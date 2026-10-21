@@ -217,11 +217,16 @@ def publish(item, assets, note, repository):
     verify_tag(repository, tag, commit)
     release = release_for(repository, tag)
     if release is None:
-        command('release', 'create', tag, '--repo', repository, '--target', commit,
-                '--title', item['title'], '--notes-file', str(note), '--draft')
-        release = release_for(repository, tag)
+        request = note.parent / (tag + '-create.json')
+        request.write_text(json.dumps({'tag_name': tag, 'target_commitish': commit,
+            'name': item['title'], 'body': note.read_text(encoding='utf-8'),
+            'draft': True, 'prerelease': True, 'make_latest': 'false'}), encoding='utf-8')
+        # Use the creation response; the release list can lag behind draft creation.
+        release = json.loads(command('api', '--method', 'POST',
+            f'repos/{repository}/releases', '--input', str(request)))
     if not release or release['target_commitish'] != commit or release['name'] != item['title']:
-        raise ValueError('Existing release does not match the pinned archive')
+        raise ValueError('Existing release does not match the pinned archive: ' + json.dumps(
+            {key: release.get(key) for key in ('id','tag_name','target_commitish','name')} if release else None))
     if (release['body'] or '').strip() != note.read_text(encoding='utf-8').strip():
         raise ValueError('Existing release notes differ; refusing to overwrite them')
     uploaded = {a['name']: a for a in api(f'repos/{repository}/releases/{release["id"]}/assets?per_page=100')}
@@ -243,7 +248,7 @@ def publish(item, assets, note, repository):
         verify_asset(repository, tag, path, uploaded[path.name])
     if release['draft']:
         command('release', 'edit', tag, '--repo', repository, '--draft=false', '--prerelease=true', '--latest=false')
-    verified = release_for(repository, tag)
+    verified = api(f'repos/{repository}/releases/{release["id"]}')
     if not verified or verified['draft'] or not verified['prerelease']:
         raise ValueError('Release was not published as a test/archive version')
     verify_tag(repository, tag, commit, required=True)
