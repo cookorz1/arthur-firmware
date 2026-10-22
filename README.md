@@ -1,87 +1,93 @@
 <div align="center">
 
-<img src="package/arthur/files/www/luci-static/arthur/avatar.jpg" width="96" height="96" alt="cookorz 的头像">
+<img src="package/arthur/files/www/luci-static/arthur/avatar.jpg" width="96" height="96" alt="cookorz 作者标志">
 
 # jdy-cookorz
 
 **京东云亚瑟 AX1800 Pro 定制固件 · by-cookorz**
 
-USB 随身 WiFi 上网 · 中文 Argon 界面 · iStore · OpenClash · 网络与内存面板
+USB 随身 WiFi 上网 · 双频 Wi-Fi · 中文 Argon · iStore · OpenClash
 
 [![构建状态](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml/badge.svg)](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml)
-[![候选版本](https://img.shields.io/badge/version-1.5.0--rc.4-orange)](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.4)
+[![源码版本](https://img.shields.io/badge/source-1.5.0--rc.5-blue)](VERSION)
+[![已发布候选版](https://img.shields.io/badge/release-1.5.0--rc.4-orange)](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.4)
 
-[下载最新版](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.4) · [全部版本](https://github.com/cookorz1/arthur-firmware/releases) · [更新日志](CHANGELOG.md) · [使用与排查](docs/USAGE.md) · [自行编译](docs/BUILDING.md)
+[固件下载](https://github.com/cookorz1/arthur-firmware/releases) · [更新日志](CHANGELOG.md) · [源码与构建](#源码与构建) · [使用与排查](docs/USAGE.md)
 
 </div>
 
-## 我为什么做这份固件
+## 项目简介
 
-我是 cookorz。我平时用京东云亚瑟接随身 WiFi 上网，这份固件最初就是为自己的使用习惯整理的：插上 USB 能共享网络，常用插件方便安装，打开管理页面就能看清端口、网速和内存状态。
+**jdy-cookorz** 是面向京东云亚瑟 **AX1800 Pro / JDCloud RE-SS-01** 的定制路由固件，基于 LibWrt，由 **cookorz** 维护。项目围绕 USB 随身 WiFi 网络共享、家庭有线与无线接入、应用管理和网络状态查看进行适配。
 
-系统基于 LibWrt，界面以 Argon 为基础。我把双频 Wi-Fi、iStore、OpenClash、网络检测和加速设置放到一套中文界面里，保留雪山登录页、深浅色切换和手机布局。Logo、登录页头像和浏览器标签页图标都用我的头像，统一署名 **by-cookorz**。
+系统集成中文 Argon、双频 Wi-Fi、iStore 和 OpenClash。定制首页集中展示 WAN / USB 流量、端口链路速率、CPU、内存与设备状态；网络面板提供 USB 上网开关和网络质量检测，加速页面统一管理软件流量分载、NSS、USB 多核分流与内存功能。
 
-我会把每一版的改动、构建来源和验证范围写清楚。发现问题可以带上版本号反馈，旧版下载也会保留，方便比较和回退。
+登录页、管理侧栏和浏览器图标统一使用作者头像与 **by-cookorz** 标识，支持深浅色切换和手机布局。定制代码、构建配置及发布流程公开，每个发布版本保留源码提交、构建记录与镜像校验文件。
 
-## 最新版本与下载
+## 版本状态与下载
 
-目前最新测试候选版是 **[v1.5.0-rc.4](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.4)**，对应 [Actions #16](https://github.com/cookorz1/arthur-firmware/actions/runs/39605685842)，源码提交 [`0a712e63c0d9`](https://github.com/cookorz1/arthur-firmware/commit/0a712e63c0d9db085f64419a31ed7a83fca6aad5)。
+| 状态 | 版本 | 来源 |
+| --- | --- | --- |
+| 当前源码 / 正在构建 | **1.5.0-rc.5** | [功能提交 `01e43e4a7ffa`](https://github.com/cookorz1/arthur-firmware/commit/01e43e4a7ffaf9cd28389c317015b39444bd0047) · [Actions #17](https://github.com/cookorz1/arthur-firmware/actions/runs/39768121777) |
+| 最新已发布候选版 | **1.5.0-rc.4** | [Release](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.4) · [Actions #16](https://github.com/cookorz1/arthur-firmware/actions/runs/39605685842) |
+| 历史版本 | build-4 ～ 1.5.0-rc.3 | [全部 Releases](https://github.com/cookorz1/arthur-firmware/releases) · [历史构建来源](.github/RELEASE_ARCHIVE.md) |
 
-源码正在推进 **1.5.0-rc.5**：加入默认开启的 USB 多核分流，OpenClash 运行时保留；全新安装默认软件流量分载。新镜像编译与校验完成前，下面仍提供已发布的 rc.4 下载，构建进度见 [Actions](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml)。
+**rc.5 已同步源码，镜像尚在构建。** 完成功能测试、界面检查、编译与附件校验后，将自动发布新的 Pre-release；当前可下载固件仍为 rc.4。构建状态以对应 Actions 为准。
 
-| 下载 | 用途 |
+### rc.4 固件下载
+
+| 文件 | 用途 |
 | --- | --- |
-| **[factory.bin · U-Boot 刷入](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.4/jdy-cookorz-arthur-v1.5.0-rc.4-0a712e63c0d9-factory.bin)** | 使用兼容本镜像格式的 U-Boot 刷机 |
-| **[sysupgrade.bin · 系统内升级](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.4/jdy-cookorz-arthur-v1.5.0-rc.4-0a712e63c0d9-sysupgrade.bin)** | 从板型和分区布局匹配的系统升级 |
-| [SHA256SUMS](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.4/SHA256SUMS) | 核对两份固件是否下载完整 |
-| [版本来源记录](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.4/FIRMWARE_VERSION.json) | 版本、原构建、源码、依赖和镜像摘要 |
+| **[factory.bin](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.4/jdy-cookorz-arthur-v1.5.0-rc.4-0a712e63c0d9-factory.bin)** | 通过兼容本镜像格式及分区布局的 U-Boot 刷入 |
+| **[sysupgrade.bin](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.4/jdy-cookorz-arthur-v1.5.0-rc.4-0a712e63c0d9-sysupgrade.bin)** | 从板型和分区布局匹配的系统内升级 |
+| [SHA256SUMS](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.4/SHA256SUMS) | 下载完整性校验 |
+| [FIRMWARE_VERSION.json](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.4/FIRMWARE_VERSION.json) | 镜像名称、大小、SHA-256、源码提交及原始构建记录 |
 
-**用 U-Boot 就下载 factory.bin。** Releases 中的 `.bin` 可直接下载；GitHub 自动附带的 Source code ZIP / TAR 是源码，不能刷机。Actions 的 Artifacts 是 ZIP，下载后需要先解压。
+使用 U-Boot 刷机时选择 **factory.bin**。GitHub 自动附带的 **Source code ZIP / TAR 是源码包**；刷机使用 Release 附件中的 `.bin`。Actions 的 Artifacts 为 ZIP，需要先解压。
 
-此版已通过行为测试、浏览器界面检查和编译校验，仍标为 **Pre-release**。此前的手动调试已验证软件分载在这台设备上有收益；新镜像的启动、热插拔和完整共存表现还需刷入后验收，不把“构建成功”当作“所有功能已经实测稳定”。
+### rc.5 更新重点
 
-### rc.4 这次改了什么
+- **USB 多核分流默认开启**：四核亚瑟使用在线 CPU0、CPU1、CPU3，自动识别 USB 共享网卡，开机和重插后恢复设置。
+- **OpenClash 运行时保留 RPS**：接收处理分流与转发分载独立控制，页面显示接口、队列掩码及实际状态。
+- **软件流量分载作为全新安装默认值**：保留配置升级沿用原转发模式；USB 多核分流提供独立开关。
+- **保留代理兼容保护**：OpenClash 配置启用或核心仍运行时，NSS 和软件转发分载暂停，条件解除后恢复所选模式。
+- **新版本自动发布**：成功构建的新版本经来源与附件校验后发布；已有 Release 和镜像保持原样。
 
-- “网络 → 加速与内存”新增 **软件流量分载**，可以和原来的 NSS 自动兼容模式、关闭模式切换。
-- 软件模式先清退并卸载 ECM；切回 NSS 或启动 OpenClash 前撤销软件规则，两种转发加速互斥。
-- OpenClash 开启、核心仍运行或 SQM/QoS 工作时保留兼容保护；条件解除后恢复所选模式，后台保护服务保持运行。
-- 首页和性能页显示所选模式、实际规则及错误原因；保留旧设置，不自动替用户切换。
-- 包含 rc.3 的标签页标题和头像图标修复。完整记录见 [更新日志](CHANGELOG.md)。
+软件分载在项目维护设备上已有突破 500 Mbps 的反馈；RPS 对比测试仍存在移动网络波动。上述结果仅作为调试记录，不代表所有设备或代理节点都能达到相同速度。rc.5 新镜像的启动、热插拔和实际代理表现仍待刷入验收。完整变化见 [CHANGELOG.md](CHANGELOG.md)。
 
-## 适用设备
+## 设备与刷入条件
 
-| 项目 | 配置 |
+| 项目 | 说明 |
 | --- | --- |
-| 设备 | **京东云亚瑟 AX1800 Pro / JDCloud RE-SS-01** |
-| 板型 | `jdcloud,re-ss-01` |
-| 平台 | `qualcommax/ipq60xx` · IPQ6018 |
-| 系统来源 | LibWrt，主源码与插件版本见 [versions.env](versions.env) |
-| 依赖版本 | 固定 feeds 提交，见 [feeds.lock.json](feeds.lock.json) |
-| 维护者 | **by-cookorz** |
+| 设备型号 | **京东云亚瑟 AX1800 Pro / JDCloud RE-SS-01** |
+| 板型标识 | `jdcloud,re-ss-01` |
+| 目标平台 | `qualcommax/ipq60xx` |
+| 固件基础 | LibWrt；主源码与插件提交见 [versions.env](versions.env) |
+| feeds 版本 | 按 [feeds.lock.json](feeds.lock.json) 固定提交 |
+| 维护与定制 | **by-cookorz** |
 
-刷入前确认自己的设备板型、U-Boot 和分区布局，备份原配置。本项目不更改 U-Boot 或重新分区。已展示并验证的设备使用 6 MiB 内核槽和 2 GiB rootfs；这不代表必须扩到 2 GiB，也不代表原厂分区已验证可直接刷入，未知布局请先核对。
+刷入前需确认板型、U-Boot、镜像格式及分区布局，并备份原配置。当前已验证设备使用 **6 MiB 内核槽和 2 GiB rootfs**；2 GiB 并非统一的强制要求，原厂分区尚未完成直接刷入验证。本项目不会修改 U-Boot 或自动重新分区。
 
-## 常用功能
+## 主要功能
 
-| 功能 | 实际用途 |
+| 功能 | 内容 |
 | --- | --- |
-| 定制首页 | WAN / USB 实时流量、CPU、可用内存、存储、端口状态、设备列表与应用入口 |
-| 中文 Argon 界面 | 统一登录页、作者头像、版本号、深浅色切换及手机布局 |
-| 双频 Wi-Fi | 亚瑟原生 ath11k 驱动与板级固件，2.4 GHz / 5 GHz AP |
-| iStore / OpenClash | 应用商店、OpenClash，以及构建时记录版本的 Mihomo ARM64 核心 |
-| USB 网络共享 | CDC-ECM / RNDIS / CDC-NCM 随身 WiFi 的 DHCP 接入，开关状态重启和重新插拔后保留 |
-| 端口与 USB 状态 | WAN、LAN1–LAN3 链路速率，USB 网卡驱动报告速率，单独显示 USB 总线枚举速率 |
+| 定制管理首页 | WAN / USB 实时流量、CPU、可用内存、存储、端口状态、设备列表与应用入口 |
+| 中文 Argon | 雪山登录页、统一作者标识、深浅色切换与手机布局 |
+| 双频 Wi-Fi | 亚瑟原生 ath11k 驱动及板级固件，2.4 GHz / 5 GHz AP |
+| 应用与代理 | iStore、OpenClash，以及构建时记录版本与摘要的 Mihomo ARM64 核心 |
+| USB 网络共享 | CDC-ECM / RNDIS / CDC-NCM 随身 WiFi DHCP 接入；开关状态在重启和重插后保留 |
+| 端口状态 | WAN、LAN1–LAN3 链路速率、USB 网卡驱动报告速率与 USB 总线枚举速率 |
 | 网络质量检测 | 手动检测 WAN / USB 的 IPv4、延迟、丢包和 HTTPS 可达性 |
-| 转发加速 | NSS / 软件流量分载 / 关闭三种选择，OpenClash 与 SQM/QoS 兼容保护 |
-| USB 多核分流（rc.5） | 默认开启的 RPS，重启与 USB 重插后自动恢复，OpenClash 运行时保留，提供独立关闭开关 |
-| 内存管理 | 128 MiB ZRAM、MemAvailable、代理内存参考值和手动缓存回收 |
-| 常用工具与驱动 | USB 网卡、存储及常见文件系统，QMI / MBIM，DDNS、WOL、流量统计、TTYD、SFTP、iperf3、ethtool 等 |
+| 转发与多核设置 | NSS、软件流量分载、USB RPS，以及 OpenClash / SQM 兼容保护 |
+| 内存管理 | 128 MiB ZRAM、可用内存、代理内存参考值与手动缓存回收 |
+| 常用驱动与工具 | USB 网卡、存储、常见文件系统、QMI / MBIM、DDNS、WOL、流量统计、TTYD、SFTP、iperf3、ethtool 等 |
 
-USB 网卡速率、USB 总线速率、蜂窝网络速率是不同的数据，不能相互替代。当前网络检测不读取 RSRP / SINR 或光猫光功率；USB 上网开关只控制网络接入，关闭后随身 WiFi 仍会供电。
+USB 网卡报告速率、USB 总线速率和蜂窝网络测速分别展示。网络质量检测目前不读取 RSRP / SINR 或光猫光功率；USB 上网开关控制网络接入，关闭后随身 WiFi 仍会供电。
 
-## 第一次开机
+## 默认设置与首次使用
 
-电脑先通过网线接入 LAN，打开 **http://192.168.10.1**。
+电脑通过网线连接 LAN，打开 **http://192.168.10.1**。
 
 | 项目 | 全新安装的初始值 |
 | --- | --- |
@@ -91,43 +97,69 @@ USB 网卡速率、USB 总线速率、蜂窝网络速率是不同的数据，不
 | 5 GHz 名称 / 密码 | `jdy-cookorz5G` / `jdy-cookorz5G` |
 | 无线模式 | WPA2-PSK / AES；2.4 GHz HE20，5 GHz HE80 |
 | 时区 | 中国上海 |
+| rc.5 转发模式 | 软件流量分载 |
+| rc.5 USB 多核分流 | 默认开启 |
 
-这些是全新安装或恢复出厂设置的初始值，保留配置升级会沿用原设置。无线初始化可能需要约一分钟，首次登录后请自行修改管理和无线密码。
+保留配置升级会沿用已有主机名、密码、无线及转发模式；新增加的 USB 多核分流选项默认开启，已有明确关闭设置予以保留。无线初始化可能需要约一分钟，首次登录后请修改管理与无线密码。
 
-1. 随身 WiFi 先开启 USB 网络共享，再接入亚瑟。
-2. 在 **网络 → 亚瑟网络面板** 查看 USB 接入、WAN/LAN 状态，按需运行网络质量检测。
-3. USB 用户可到 **网络 → 加速与内存** 查看转发模式。rc.5 全新安装默认软件流量分载和 USB 多核分流；保留配置升级沿用原转发模式，新增多核分流默认开启，可独立关闭。
-4. OpenClash 导入自己的订阅或配置后启用；其他应用在 iStore 按需安装。
+1. 在随身 WiFi 上开启 USB 网络共享，再连接亚瑟。
+2. 打开 **网络 → 亚瑟网络面板**，查看 USB 接入、端口状态，按需运行网络质量检测。
+3. 打开 **网络 → 加速与内存**，确认转发模式与 USB 多核分流状态。
+4. 在 OpenClash 中导入订阅或配置后启用；其他应用通过 iStore 按需安装。
 
-OpenClash 启用或核心仍运行时，NSS 和软件转发分载都会暂停，rc.5 的 USB 多核分流继续保留。RPS 分散收包处理，不绕过代理规则，也不替代节点加解密；代理开启后的速度需要单独实测。测速流量是否走代理节点，取决于实际规则。BBR 影响路由器本机及代理出口的内核 TCP 连接，不改变终端设备的拥塞算法。ZRAM 是压缩交换，手动回收只释放可回收缓存，不能清掉程序正在使用的内存。
+详细操作见 [使用与排查](docs/USAGE.md)。
 
-## 版本记录
+## 加速与 OpenClash 共存
 
-| 版本 | 主要变化 | 下载 |
+| 功能 | OpenClash 关闭、核心退出时 | OpenClash 已启用或核心仍运行时 |
 | --- | --- | --- |
-| 1.5.0-rc.5 | 默认 USB 多核分流、OpenClash 运行时保留、热插拔恢复 | [构建进度](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml)，待镜像完成 |
-| **1.5.0-rc.4** | USB 软件分载与 OpenClash 保护、实际加速状态 | [最新测试候选版](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.4) |
-| 1.5.0-rc.3 | `jdy-cookorz` 标签页标题与头像图标修复 | [Release](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.3) |
-| 1.5.0-rc.2 | 作者头像、署名、统一版本与来源记录 | [Release](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.2) |
-| 1.0.0～1.4.0 / build-4 | Wi-Fi、USB、网络检测、NSS、内存及定制首页的开发历程 | [历史版本与原构建](.github/RELEASE_ARCHIVE.md) |
+| 软件流量分载 / NSS | 按所选模式及兼容条件启用，两者互斥 | 暂停并清退加速规则，保留代理处理路径 |
+| USB 多核分流 RPS（rc.5） | 软件模式下默认启用；运行 NSS 或全局分流接管时暂不叠加 | 默认保留，状态可在页面查看 |
+| BBR | 作用于路由器本机的内核 TCP 新连接 | 可作用于代理使用的内核 TCP 连接，不替代加解密 |
+| 无线 NSS | 保留独立驱动与实际状态 | 保留独立驱动与实际状态 |
 
-我用 `VERSION` 管理源码版本，用 [CHANGELOG.md](CHANGELOG.md) 记录每次变化；Releases 固定保存对应提交的镜像、SHA-256 和原构建记录。已发布的版本不替换附件、不移动标签，需要修正就发新版本。没有成功生成镜像的构建保留在 Actions，不创建空的 Release。
+RPS 负责分散收包处理，软件流量分载负责缩短符合条件连接的转发路径，两者作用不同。开启代理后的吞吐还受节点、规则、代理模式和加解密负载影响。SQM / QoS 工作时暂停转发分载以保留整形效果；USB RPS 交由独立兼容检查管理。
 
-[版本与发布流程](docs/VERSIONING.md) · [使用与排查](docs/USAGE.md) · [自行编译](docs/BUILDING.md)
+ZRAM 使用压缩内存；手动回收仅释放可回收缓存，不会结束代理进程或清空连接。日常内存状态应优先关注 **可用内存**。
 
-## 问题反馈
+## 源码与构建
 
-到 [Issues](https://github.com/cookorz1/arthur-firmware/issues) 写明机型、固件版本、刷入方式、是否保留配置及复现步骤。网络问题请补充 USB / WAN 类型、OpenClash 模式和转发加速设置，日志里去掉订阅地址、节点密码等私密信息。
+项目定制代码和构建文件已同步到本仓库，可通过 **Code → Download ZIP** 下载，或使用：
 
-SSH 中可以确认自己刷入的版本与源码：
+```sh
+git clone https://github.com/cookorz1/arthur-firmware.git
+cd arthur-firmware
+```
+
+| 路径 | 内容 |
+| --- | --- |
+| [package/arthur](package/arthur) | 网络面板、USB 接入、加速与 RPS 控制、状态接口及前端代码 |
+| [files](files) | 系统与无线初始化、界面定制及相关文件 |
+| [scripts](scripts) | 源码整合、界面处理、版本校验与发布工具 |
+| [config.seed](config.seed) / [required-packages.txt](required-packages.txt) | 固件配置与必要软件包清单 |
+| [versions.env](versions.env) / [feeds.lock.json](feeds.lock.json) | 上游源码地址与固定提交 |
+| [tests](tests) | 行为、界面与发布校验测试 |
+| [.github/workflows](.github/workflows) | 自动构建、发布及历史固件归档流程 |
+
+本仓库保存构建配置与定制代码，LibWrt、LuCI 等上游源码在构建时按固定提交获取。完整编译环境与命令见 [BUILDING.md](docs/BUILDING.md)；rc.5 功能源码固定在 [`01e43e4a7ffa`](https://github.com/cookorz1/arthur-firmware/tree/01e43e4a7ffaf9cd28389c317015b39444bd0047)。
+
+## 版本记录与反馈
+
+版本号由 `VERSION` 统一管理，[CHANGELOG.md](CHANGELOG.md) 记录每版变化。Release 固定对应源码提交，提供镜像、SHA-256 和原始构建记录；已发布版本不替换附件、不移动标签，后续修改使用新版本。
+
+反馈问题时，请在 [Issues](https://github.com/cookorz1/arthur-firmware/issues) 提供机型、版本、刷入方式、是否保留配置、USB / WAN 接入方式及复现步骤。网络问题请附 OpenClash 模式、加速设置和必要日志，删除订阅地址、节点密码等私密信息。
+
+SSH 查看当前设备版本与源码：
 
 ```sh
 cat /etc/arthur-version
 cat /etc/arthur-build
 ```
 
+[版本与发布流程](docs/VERSIONING.md) · [历史固件与构建记录](.github/RELEASE_ARCHIVE.md)
+
 ## 致谢与许可
 
-感谢 [LibWrt](https://github.com/LiBwrt/LibWrt)、[ImmortalWrt LuCI](https://github.com/immortalwrt/luci)、[Argon](https://github.com/jerrykuku/luci-theme-argon)、[iStore](https://github.com/istoreos/istore)、[OpenClash](https://github.com/vernesong/OpenClash) 和 [Mihomo](https://github.com/MetaCubeX/mihomo) 等项目的维护者。
+基础系统和相关组件来自 [LibWrt](https://github.com/LiBwrt/LibWrt)、[ImmortalWrt LuCI](https://github.com/immortalwrt/luci)、[Argon](https://github.com/jerrykuku/luci-theme-argon)、[iStore](https://github.com/istoreos/istore)、[OpenClash](https://github.com/vernesong/OpenClash) 和 [Mihomo](https://github.com/MetaCubeX/mihomo) 等项目。
 
-我维护这里的亚瑟适配配置、网络面板和定制界面。仓库自定义代码按 [MIT](LICENSE) 许可使用，各上游软件继续遵循自己的许可证。头像仅用于本项目的作者标识，不属于 MIT 代码授权范围。
+亚瑟适配配置、网络面板和定制界面由 **cookorz** 维护。仓库自定义代码按 [MIT](LICENSE) 许可使用，各上游软件遵循各自许可证。作者头像用于本项目身份标识，不属于 MIT 代码授权范围。

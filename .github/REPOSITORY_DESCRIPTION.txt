@@ -1,1 +1,1 @@
-jdy-cookorz · by-cookorz｜京东云亚瑟 AX1800 Pro / RE-SS-01 定制固件，基于 LibWrt。集成中文 Argon、双频 Wi-Fi、iStore、OpenClash、USB 随身 WiFi 上网、网络检测、NSS / 软件分载与内存管理。
+jdy-cookorz｜京东云亚瑟 AX1800 Pro / RE-SS-01 定制固件。基于 LibWrt，集成中文 Argon、双频 Wi-Fi、iStore、OpenClash、USB 随身 WiFi 共享、RPS 多核分流及网络与内存管理。by-cookorz
