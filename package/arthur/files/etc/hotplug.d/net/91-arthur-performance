@@ -1,0 +1,5 @@
+#!/bin/sh
+case "$ACTION" in
+    add|remove) /etc/init.d/arthur-performance reload >/dev/null 2>&1 & ;;
+esac
+exit 0

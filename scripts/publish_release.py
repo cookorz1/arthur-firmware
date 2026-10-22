@@ -1,4 +1,4 @@
-"""Publish a manually requested release only after every uploaded asset is verified."""
+"""Publish a new firmware version only after every uploaded asset is verified."""
 import hashlib
 import json
 import os
@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
 
 
 def gh(*args, allow_missing=False):
@@ -50,33 +51,46 @@ def validated_assets(output, commit):
     return data, assets
 
 
-def publish(output, commit, repository):
+def publish(output, commit, repository, skip_existing=False):
     if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository):
         raise ValueError('Invalid repository name')
     data, assets = validated_assets(output, commit)
     tag = data['tag']
     if gh('release','view',tag,'--repo',repository,allow_missing=True) is not None:
+        if skip_existing:
+            print(f'{tag} already has a release; leaving its original assets unchanged.')
+            return
         raise ValueError('Version already exists; refusing to replace its release')
     if gh('api',f'repos/{repository}/git/ref/tags/{tag}',allow_missing=True) is not None:
         raise ValueError('Tag already exists; choose a new version after reviewing the old tag')
-    gh('release','create',tag,*map(str,assets),'--repo',repository,'--target',commit,
-       '--title',f'jdy-cookorz {tag} · by-cookorz','--notes-file',str(output/'RELEASE_NOTES.md'),'--draft')
-    drafts = json.loads(gh('api',f'repos/{repository}/releases?per_page=100'))
-    matches = [item for item in drafts if item['tag_name'] == tag and item['draft']]
-    if len(matches) != 1:
-        raise ValueError('Draft release could not be uniquely identified')
-    uploaded = json.loads(gh('api',f'repos/{repository}/releases/{matches[0]["id"]}'))
+    # Use the creation response, avoiding eventually consistent release listings.
+    payload = {'tag_name': tag, 'target_commitish': commit,
+               'name': f'jdy-cookorz {tag} · by-cookorz',
+               'body': (output/'RELEASE_NOTES.md').read_text(encoding='utf-8'),
+               'draft': True, 'prerelease': data['prerelease'], 'make_latest': 'false'}
+    with tempfile.TemporaryDirectory(prefix='arthur-publish-') as directory:
+        request = Path(directory)/'release.json'
+        request.write_text(json.dumps(payload, ensure_ascii=False), encoding='utf-8')
+        draft = json.loads(gh('api','--method','POST',f'repos/{repository}/releases',
+                              '--input',str(request)))
+    if not draft.get('draft') or draft.get('tag_name') != tag or draft.get('target_commitish') != commit:
+        raise ValueError('Unexpected draft creation response; publication stopped')
+    gh('release','upload',tag,*map(str,assets),'--repo',repository)
+    uploaded = json.loads(gh('api',f'repos/{repository}/releases/{draft["id"]}'))
     entries = {entry['name']: entry for entry in uploaded['assets']}
+    if set(entries) != {path.name for path in assets}:
+        raise ValueError('Draft kept: uploaded asset set differs from the built release')
     for path in assets:
         entry = entries.get(path.name)
         if not entry or entry['size'] != path.stat().st_size:
             raise ValueError('Draft kept: uploaded assets are incomplete')
         digest = entry.get('digest')
-        if digest and digest != 'sha256:'+hashlib.sha256(path.read_bytes()).hexdigest():
+        if digest != 'sha256:'+hashlib.sha256(path.read_bytes()).hexdigest():
             raise ValueError('Draft kept: uploaded asset hash differs')
     gh('release','edit',tag,'--repo',repository,'--draft=false',
        '--prerelease='+str(data['prerelease']).lower(), '--latest='+str(not data['prerelease']).lower())
 
 
 if __name__ == '__main__':
-    publish(Path(sys.argv[1]), os.environ['GITHUB_SHA'], os.environ['GITHUB_REPOSITORY'])
+    publish(Path(sys.argv[1]), os.environ['GITHUB_SHA'], os.environ['GITHUB_REPOSITORY'],
+            skip_existing=os.environ.get('SKIP_EXISTING_RELEASE') == '1')

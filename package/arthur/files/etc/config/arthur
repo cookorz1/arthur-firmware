@@ -3,5 +3,6 @@ config usb 'usb'
 
 config performance 'performance'
 	option tcp_cc 'bbr'
-	option nss_mode 'auto'
+	option nss_mode 'software'
+	option usb_rps '1'
 	option zram_enabled '1'

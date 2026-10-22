@@ -6,6 +6,7 @@ ECM="${ARTHUR_ECM_ROOT:-/sys/kernel/debug/ecm}"
 MODULES="${ARTHUR_MODULE_ROOT:-/sys/module}"
 STATE="${ARTHUR_PERF_STATE:-/var/run/arthur-performance}"
 INIT="${ARTHUR_INIT_ROOT:-/etc/init.d}"
+USB_RPS="${ARTHUR_RPS_HELPER:-/usr/libexec/arthur-usb-rps}"
 
 number() {
     case "$1" in ''|*[!0-9]*) printf null ;; *) printf '%s' "$1" ;; esac
@@ -185,9 +186,8 @@ apply_tcp() {
     write_value "$PROC/sys/net/core/default_qdisc" fq
 }
 
-reconcile() {
+reconcile_forwarding() {
     local why
-    lock_control || return 1
     rm -f "$STATE/error"
     apply_tcp || :
     # Changing ZRAM takes effect on reboot. Never swapoff while memory is under pressure.
@@ -219,6 +219,12 @@ reconcile() {
         printf '%s\n' flowtable_conflict >"$STATE/error"
         return 1
     fi
+    # Restore our USB steering before re-enabling the NSS forwarding backend.
+    if [ -f "$USB_RPS" ] && ! sh "$USB_RPS" pause; then
+        pause_ecm 1
+        printf '%s\n' usb_rps_restore_failed >"$STATE/error"
+        return 1
+    fi
     if [ ! -d "$MODULES/ecm" ]; then
         modprobe ecm front_end_selection=1 >/dev/null 2>&1 || {
             printf '%s\n' nss_load_failed >"$STATE/error"; return 1;
@@ -244,6 +250,15 @@ reconcile() {
         printf '%s\n' nss_controls_missing >"$STATE/error"; return 1;
     }
     rm -f "$STATE/drained"
+}
+
+reconcile() {
+    local result=0
+    lock_control || return 1
+    reconcile_forwarding || result=$?
+    # Independent receive steering also stays active during proxy protection.
+    [ ! -f "$USB_RPS" ] || sh "$USB_RPS" reconcile || :
+    return "$result"
 }
 
 memory_json() {
@@ -274,7 +289,7 @@ status() {
     case "$qdisc" in ''|*[!a-zA-Z0-9_-]*) qdisc=unknown ;; esac
     why="$(reason)"
     error="$(cat "$STATE/error" 2>/dev/null)"
-    case "$error" in tcp_algorithm_unavailable|nss_load_failed|nss_controls_missing|nss_drain_failed|flowtable_conflict|nss_unload_failed|software_module_unavailable|software_apply_failed) ;; *) error='' ;; esac
+    case "$error" in tcp_algorithm_unavailable|nss_load_failed|nss_controls_missing|nss_drain_failed|flowtable_conflict|nss_unload_failed|software_module_unavailable|software_apply_failed|usb_rps_restore_failed) ;; *) error='' ;; esac
     stop4="$(cat "$ECM/front_end_ipv4_stop" 2>/dev/null)"
     stop6="$(cat "$ECM/front_end_ipv6_stop" 2>/dev/null)"
     count4="$(cat "$ECM/ecm_nss_ipv4/accelerated_count" 2>/dev/null)"
@@ -307,7 +322,13 @@ status() {
     printf '"ecm_stop4":%s,"ecm_stop6":%s,"accelerated_ipv4":%s,"accelerated_ipv6":%s,' \
         "$(number "$stop4")" "$(number "$stop6")" "$(number "$count4")" "$(number "$count6")"
     printf '"mode":"%s","active_backend":"%s","software_flowtable":%s,' "$selected" "$backend" "$flowtable"
-    printf '"zram_active":%s,"zram_size_kib":%s,"zram_used_kib":%s,"proxy_rss_kib":%s,"build":"%s","memory":' \
+    printf '"usb_rps":'
+    if [ -f "$USB_RPS" ]; then
+        sh "$USB_RPS" status
+    else
+        printf '{"enabled":false,"state":"unavailable","device":"","target_mask":"","queues":[],"error":"unavailable"}'
+    fi
+    printf ',"zram_active":%s,"zram_size_kib":%s,"zram_used_kib":%s,"proxy_rss_kib":%s,"build":"%s","memory":' \
         "$zram" "$(number "$zram_size")" "$(number "$zram_used")" "$rss" "$build"
     memory_json
     printf '}\n'
@@ -347,7 +368,10 @@ case "$1" in
     reconcile) reconcile ;;
     protect)
         lock_control || exit 1
-        stop_forwarding 1 || exit 1
+        result=0
+        stop_forwarding 1 || result=$?
+        [ ! -f "$USB_RPS" ] || sh "$USB_RPS" reconcile || :
+        exit "$result"
         ;;
     release_memory) release_memory ;;
     *) exit 1 ;;

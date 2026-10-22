@@ -17,15 +17,19 @@
 
 1. 修改 `VERSION`，并同步 `package/arthur/Makefile` 的基础版本。例如项目 `1.5.0-rc.4` 对应包版本 `1.5.0`、`PKG_RELEASE:=4`。
 2. 在 `CHANGELOG.md` 顶部新增同名、带日期的条目。写清用户能看到的变化、修复内容、已做的检查和仍待实机验证的事项。不要把“编译成功”写成“已经实测稳定”。
-3. 提交到 main，等待 Actions 的功能测试、界面检查和编译校验。普通 push 只产生测试构建与 Artifacts。
+3. 提交到 main，等待 Actions 的功能测试、界面检查和编译校验。rc.5 起，成功的 main push 会自动尝试发布未发布的新版本；已有同版本 Release 时跳过，不替换原附件。
 4. 实机验证时记录机型、刷入方式、是否保留配置、WAN/USB/Wi-Fi、OpenClash模式及加速开关组合、结果和发现的问题。敏感订阅、节点密码不写进记录。
 
 ## 在 GitHub 发布一个固定版本
 
+默认流程是提交新版本到 main：构建成功并上传 Artifacts 后，独立发布 job 验证来源、镜像和记录，再创建草稿、上传并校验服务端 SHA-256，最后发布。失败的构建不会创建 Release；已有 Release 不会被更新。`VERSION` 不变的后续构建不会覆盖已发布镜像。
+
+需要手动运行时：
+
 1. 打开 **Actions → Build jdy-cookorz Arthur firmware → Run workflow**，分支选 **main**。
 2. 勾选“构建成功后发布 VERSION 对应的 GitHub Release”，再运行。
 3. 流程重新验证和构建这一提交；成功后生成 Release 草稿、上传附件并校验附件是否齐全，再公开发布。`-rc.N` 自动标为 Pre-release，不替换 Latest 正式版；不带 rc 的版本才标为正式发布。
-4. 若中途上传或校验失败，保留草稿用于检查。不要手工把不完整草稿发布。已有 Release 或 Tag 会阻止覆盖，需检查现有记录并采用新版本。
+4. 若中途上传或校验失败，保留草稿用于检查。不要手工把不完整草稿发布。手动发布遇到已有 Release 或 Tag 会阻止覆盖，需检查现有记录并采用新版本；自动发布遇到已有 Release 则跳过。
 
 发布使用该次构建的 GitHub token，无需在仓库里保存个人 token；只有发布 job 申请 `contents: write`，普通构建保持只读。
 

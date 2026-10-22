@@ -71,17 +71,32 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(gh.call_count,1)
 
     def test_publish_stays_draft_until_assets_pass_verification(self):
+        import hashlib
         data=self.prepared();_,assets=publisher.validated_assets(self.output,COMMIT)
-        responses=[None,None,'created',json.dumps([{'tag_name':data['tag'],'draft':True,'id':42}]),json.dumps({'assets':[{'name':p.name,'size':p.stat().st_size} for p in assets]}),'published']
+        responses=[None,None,json.dumps({'tag_name':data['tag'],'draft':True,'id':42,'target_commitish':COMMIT}),'uploaded',json.dumps({'assets':[{'name':p.name,'size':p.stat().st_size,'digest':'sha256:'+hashlib.sha256(p.read_bytes()).hexdigest()} for p in assets]}),'published']
         with patch.object(publisher,'gh',side_effect=responses) as gh:
             publisher.publish(self.output,COMMIT,'cookorz1/arthur-firmware')
-            self.assertIn('--draft',gh.call_args_list[2].args)
+            self.assertIn('POST',gh.call_args_list[2].args)
+            self.assertEqual(gh.call_args_list[3].args[:2],('release','upload'))
             self.assertIn('--draft=false',gh.call_args_list[-1].args)
             self.assertIn('--prerelease=true',gh.call_args_list[-1].args)
             self.assertIn('--latest=false',gh.call_args_list[-1].args)
 
     def test_incomplete_upload_never_publishes(self):
         data=self.prepared()
-        with patch.object(publisher,'gh',side_effect=[None,None,'created',json.dumps([{'tag_name':data['tag'],'draft':True,'id':42}]),json.dumps({'assets':[]})]) as gh:
+        with patch.object(publisher,'gh',side_effect=[None,None,json.dumps({'tag_name':data['tag'],'draft':True,'id':42,'target_commitish':COMMIT}),'uploaded',json.dumps({'assets':[]})]) as gh:
             with self.assertRaises(ValueError):publisher.publish(self.output,COMMIT,'cookorz1/arthur-firmware')
+            self.assertFalse(any('--draft=false' in call.args for call in gh.call_args_list))
+
+    def test_push_publication_skips_existing_release_without_replacing_assets(self):
+        self.prepared()
+        with patch.object(publisher,'gh',return_value='existing') as gh:
+            publisher.publish(self.output,COMMIT,'cookorz1/arthur-firmware',skip_existing=True)
+            self.assertEqual(gh.call_count,1)
+
+    def test_missing_server_digest_keeps_release_draft(self):
+        data=self.prepared();_,assets=publisher.validated_assets(self.output,COMMIT)
+        responses=[None,None,json.dumps({'tag_name':data['tag'],'draft':True,'id':42,'target_commitish':COMMIT}),'uploaded',json.dumps({'assets':[{'name':p.name,'size':p.stat().st_size} for p in assets]})]
+        with patch.object(publisher,'gh',side_effect=responses) as gh:
+            with self.assertRaises(ValueError): publisher.publish(self.output,COMMIT,'cookorz1/arthur-firmware')
             self.assertFalse(any('--draft=false' in call.args for call in gh.call_args_list))

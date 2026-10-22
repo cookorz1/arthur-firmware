@@ -86,6 +86,9 @@ class PerformanceTests(unittest.TestCase):
         self.put('proc/swaps', 'Filename Type Size Used Priority\n/dev/zram0 partition 131072 11072 100\n')
         self.put('pids.json', '{}')
         self.put('build', 'test-build\n')
+        self.put('proc/stat', 'cpu 0 0 0 0\ncpu0 0 0 0 0\ncpu1 0 0 0 0\ncpu2 0 0 0 0\ncpu3 0 0 0 0\n')
+        self.net = self.base / 'net'
+        self.net.mkdir()
         self.uci_file = self.base / 'uci.json'
         self.uci_file.write_text(json.dumps({
             'arthur.performance.tcp_cc': 'bbr', 'arthur.performance.nss_mode': 'auto',
@@ -97,7 +100,9 @@ class PerformanceTests(unittest.TestCase):
                         MOCK_UCI=str(self.uci_file), MOCK_PERF_BASE=str(self.base),
                         ARTHUR_PROC_ROOT=str(self.proc), ARTHUR_ECM_ROOT=str(self.ecm),
                         ARTHUR_MODULE_ROOT=str(self.modules), ARTHUR_PERF_STATE=str(self.state),
-                        ARTHUR_INIT_ROOT=str(self.init), ARTHUR_BUILD_FILE=str(self.base / 'build'))
+                        ARTHUR_INIT_ROOT=str(self.init), ARTHUR_BUILD_FILE=str(self.base / 'build'),
+                        ARTHUR_SYSFS_ROOT=str(self.net),
+                        ARTHUR_RPS_HELPER=str(SCRIPT.with_name('arthur-usb-rps')))
         self.command(self.bin / 'uci', UCI_MOCK)
         for name in ('pidof', 'modprobe', 'rmmod', 'nft', 'sync'):
             self.command(self.bin / name, COMMAND)
@@ -130,6 +135,203 @@ class PerformanceTests(unittest.TestCase):
         self.put('ecm/front_end_ipv4_stop', str(value) + '\n')
         self.put('ecm/front_end_ipv6_stop', str(value) + '\n')
         self.put('ecm/ecm_db/defunct_all', '0\n')
+
+    def usb_device(self, name='eth0', driver='cdc_ether', index='8', queues=1, initial='0'):
+        interface = self.net / name
+        interface.mkdir(exist_ok=True)
+        self.put('usb/' + name + '/idVendor', '19d2\n')
+        device = self.base / 'usb' / name / 'interface'
+        device.mkdir(exist_ok=True)
+        driver_dir = self.base / 'drivers' / driver
+        driver_dir.mkdir(parents=True, exist_ok=True)
+        (device / 'driver').symlink_to(driver_dir, target_is_directory=True)
+        (interface / 'device').symlink_to(device, target_is_directory=True)
+        (interface / 'ifindex').write_text(index + '\n')
+        for number in range(queues):
+            node = interface / 'queues' / f'rx-{number}' / 'rps_cpus'
+            node.parent.mkdir(parents=True)
+            node.write_text(initial + '\n')
+        return interface / 'queues/rx-0/rps_cpus'
+
+    def test_usb_rps_defaults_on_and_follows_configured_device_not_name_eth0(self):
+        first = self.usb_device('usb0', queues=2)
+        other = self.usb_device('eth0', index='9')
+        self.update({'network.f50.device': 'usb0'})
+        self.software_mode()
+        self.run_action('reconcile')
+        self.assertEqual(first.read_text().strip(), 'b')
+        self.assertEqual(first.parent.with_name('rx-1').joinpath('rps_cpus').read_text().strip(), 'b')
+        self.assertEqual(other.read_text().strip(), '0')
+        rps = json.loads(self.run_action('status'))['usb_rps']
+        self.assertTrue(rps['enabled'])
+        self.assertEqual(rps['state'], 'active')
+        self.assertEqual(rps['device'], 'usb0')
+
+    def test_usb_rps_remains_active_across_proxy_start_reload_and_stop(self):
+        node = self.usb_device()
+        self.software_mode()
+        self.run_action('reconcile')
+        self.update({'openclash.config.enable': '1'})
+        self.run_action('protect')
+        self.run_action('reconcile')
+        status = json.loads(self.run_action('status'))
+        self.assertTrue(status['proxy_guard'])
+        self.assertFalse(status['software_flowtable'])
+        self.assertEqual(status['usb_rps']['state'], 'active')
+        self.assertEqual(node.read_text().strip(), 'b')
+        self.run_action('protect')
+        self.put('pids.json', '{"mihomo": 9}')
+        self.update({'openclash.config.enable': '0'})
+        self.run_action('reconcile')
+        self.assertEqual(node.read_text().strip(), 'b')
+        self.assertFalse((self.base / 'flowtable').exists())
+        self.put('pids.json', '{}')
+        self.run_action('reconcile')
+        self.assertEqual(json.loads(self.run_action('status'))['active_backend'], 'software')
+        self.assertEqual(node.read_text().strip(), 'b')
+
+    def test_usb_rps_off_restores_original_setting_and_preserves_explicit_off(self):
+        node = self.usb_device(initial='4')
+        self.software_mode()
+        self.run_action('reconcile')
+        self.assertEqual(node.read_text().strip(), 'b')
+        self.update({'arthur.performance.usb_rps': '0'})
+        self.run_action('reconcile')
+        self.assertEqual(node.read_text().strip(), '4')
+        self.run_action('reconcile')
+        self.assertEqual(node.read_text().strip(), '4')
+        self.assertEqual(json.loads(self.run_action('status'))['usb_rps']['state'], 'off')
+
+    def test_usb_rps_does_not_overwrite_later_administrator_changes_on_disable(self):
+        node = self.usb_device()
+        self.software_mode()
+        self.run_action('reconcile')
+        node.write_text('3\n')
+        self.update({'arthur.performance.usb_rps': '0'})
+        self.run_action('reconcile')
+        self.assertEqual(node.read_text().strip(), '3')
+
+    def test_usb_rps_hot_unplug_and_name_reuse_never_restore_old_device_baseline(self):
+        import shutil
+        node = self.usb_device()
+        self.software_mode()
+        self.run_action('reconcile')
+        shutil.rmtree(self.net / 'eth0')
+        shutil.rmtree(self.base / 'usb/eth0')
+        self.run_action('reconcile')
+        self.assertEqual(json.loads(self.run_action('status'))['usb_rps']['state'], 'waiting')
+        node = self.usb_device(index='10', initial='2')
+        self.run_action('reconcile')
+        self.assertEqual(node.read_text().strip(), 'b')
+        self.update({'arthur.performance.usb_rps': '0'})
+        self.run_action('reconcile')
+        self.assertEqual(node.read_text().strip(), '2')
+
+    def test_usb_rps_new_device_ifindex_is_detected_without_an_intermediate_watch_cycle(self):
+        node = self.usb_device()
+        self.software_mode()
+        self.run_action('reconcile')
+        (self.net / 'eth0/ifindex').write_text('11\n')
+        node.write_text('1\n')
+        self.run_action('reconcile')
+        self.update({'arthur.performance.usb_rps': '0'})
+        self.run_action('reconcile')
+        self.assertEqual(node.read_text().strip(), '1')
+
+    def test_usb_rps_waits_for_device_then_recovers_after_boot(self):
+        self.software_mode()
+        self.run_action('reconcile')
+        self.assertEqual(json.loads(self.run_action('status'))['usb_rps']['state'], 'waiting')
+        node = self.usb_device()
+        self.run_action('reconcile')
+        self.assertEqual(node.read_text().strip(), 'b')
+
+    def test_usb_rps_survives_qos_protection_without_enabling_flow_bypass(self):
+        node = self.usb_device()
+        self.software_mode()
+        self.update({'sqm.test.enabled': '1'})
+        self.run_action('reconcile')
+        status = json.loads(self.run_action('status'))
+        self.assertEqual(status['reason'], 'qos')
+        self.assertFalse(status['software_flowtable'])
+        self.assertEqual(node.read_text().strip(), 'b')
+
+    def test_usb_rps_yields_to_nss_but_works_when_proxy_pauses_nss(self):
+        node = self.usb_device()
+        self.run_action('reconcile')
+        self.assertEqual(node.read_text().strip(), '0')
+        self.assertEqual(json.loads(self.run_action('status'))['usb_rps']['state'], 'nss')
+        self.update({'openclash.config.enable': '1'})
+        self.run_action('protect')
+        self.assertEqual(node.read_text().strip(), 'b')
+        self.run_action('reconcile')
+        self.assert_paused()
+        self.assertEqual(json.loads(self.run_action('status'))['usb_rps']['state'], 'active')
+
+    def test_usb_rps_yields_to_global_steering_without_fighting_its_values(self):
+        node = self.usb_device(initial='2')
+        self.software_mode()
+        self.run_action('reconcile')
+        self.update({'network.globals.packet_steering': '1'})
+        node.write_text('f\n')
+        self.run_action('reconcile')
+        self.assertEqual(node.read_text().strip(), 'f')
+        self.assertEqual(json.loads(self.run_action('status'))['usb_rps']['state'], 'global_steering')
+
+    def test_usb_rps_offline_cpu_is_excluded_from_b_mask(self):
+        node = self.usb_device()
+        self.put('proc/stat', 'cpu 0 0 0 0\ncpu0 0 0 0 0\ncpu1 0 0 0 0\n')
+        self.software_mode()
+        self.run_action('reconcile')
+        self.assertEqual(node.read_text().strip(), '3')
+
+    def test_usb_rps_partial_apply_failure_restores_other_queues(self):
+        node = self.usb_device(queues=2)
+        second = node.parent.with_name('rx-1') / 'rps_cpus'
+        second.write_text('invalid-mask\n')
+        self.software_mode()
+        self.run_action('reconcile')
+        self.assertEqual(node.read_text().strip(), '0')
+        status = json.loads(self.run_action('status'))
+        self.assertEqual(status['usb_rps']['state'], 'error')
+        self.assertEqual(status['usb_rps']['error'], 'apply_failed')
+        self.assertEqual(status['active_backend'], 'software')
+
+    def test_switching_back_to_nss_restores_our_usb_steering(self):
+        node = self.usb_device(initial='2')
+        self.software_mode()
+        self.run_action('reconcile')
+        self.update({'arthur.performance.nss_mode': 'auto'})
+        self.run_action('reconcile')
+        self.assertEqual(node.read_text().strip(), '2')
+        status = json.loads(self.run_action('status'))
+        self.assertEqual(status['active_backend'], 'nss')
+        self.assertEqual(status['usb_rps']['state'], 'nss')
+
+    def test_usb_rps_rejects_non_tether_and_raw_modem_drivers(self):
+        node = self.usb_device(driver='qmi_wwan')
+        self.software_mode()
+        self.run_action('reconcile')
+        self.assertEqual(node.read_text().strip(), '0')
+        self.assertEqual(json.loads(self.run_action('status'))['usb_rps']['state'], 'waiting')
+
+    def test_usb_rps_status_reports_live_masks_without_writing_them(self):
+        node = self.usb_device()
+        self.software_mode()
+        status = json.loads(self.run_action('status'))
+        self.assertEqual(status['usb_rps']['state'], 'pending')
+        self.assertEqual(status['usb_rps']['queues'][0]['mask'], '0')
+        self.assertEqual(node.read_text().strip(), '0')
+        self.assertFalse((self.state / 'usb-rps').exists())
+
+    def test_usb_disabled_restores_rps_without_changing_proxy_or_firewall_policy(self):
+        node = self.usb_device()
+        self.software_mode()
+        self.run_action('reconcile')
+        self.update({'arthur.usb.enabled': '0'})
+        self.run_action('reconcile')
+        self.assertEqual(node.read_text().strip(), '0')
+        self.assertEqual(json.loads(self.run_action('status'))['usb_rps']['state'], 'usb_disabled')
 
     def assert_paused(self):
         self.assertEqual((self.ecm / 'front_end_ipv4_stop').read_text().strip(), '1')

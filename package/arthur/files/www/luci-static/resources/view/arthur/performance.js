@@ -45,6 +45,7 @@ return view.extend({
             nss_unload_failed: _('ECM 未能退出，已取消软件分载，避免两个模式叠加'),
             software_module_unavailable: _('软件分载内核模块不可用，已取消启用'),
             software_apply_failed: _('软件分载规则应用失败，已尝试关闭并恢复普通转发'),
+            usb_rps_restore_failed: _('USB 多核设置未能恢复，已取消启用 NSS，请检查接口状态'),
             tcp_algorithm_unavailable: _('选定的 TCP 拥塞算法不可用，当前算法保持原值')
         };
         var count4 = typeof data.accelerated_ipv4 === 'number' ? data.accelerated_ipv4 : '—';
@@ -53,11 +54,27 @@ return view.extend({
         var zram = data.zram_active ? _('已启用') + ' · ' + mib(data.zram_used_kib) + ' / ' + mib(data.zram_size_kib) : _('未启用');
         if (desiredZram !== !!data.zram_active)
             zram += _('（设置将在下次重启后生效）');
+        var rps = data.usb_rps || {};
+        var rpsStates = {
+            active: _('已启用'), pending: _('等待应用'), off: _('已关闭'),
+            waiting: _('等待连接随身 WiFi'), usb_disabled: _('USB 上网已关闭'),
+            nss: _('NSS 转发运行中，暂不叠加；软件模式或代理保护时恢复'),
+            global_steering: _('由接口全局软件包分载接管'),
+            unsupported: _('当前接口未提供可用的 RPS 队列或 CPU'),
+            unavailable: _('状态不可用'), error: _('应用或恢复失败，请检查 USB 接口')
+        };
+        var rpsText = rpsStates[rps.state] || _('状态不可用');
+        if (rps.device) rpsText += ' · ' + rps.device;
+        if (rps.queues && rps.queues.length)
+            rpsText += ' · ' + rps.queues.map(function(q) { return q.queue + '=' + q.mask; }).join(', ');
+        if (rps.state === 'active' && data.proxy_guard)
+            rpsText += _(' · OpenClash 运行时保留');
         var fields = [
             [_('TCP 拥塞控制 / 默认队列'), (data.tcp_cc || '—') + ' / ' + (data.default_qdisc || '—')],
             [_('NSS 驱动'), data.nss_driver ? _('已加载') : _('未加载')],
             [_('转发加速状态'), nss],
             [_('软件流量分载规则'), data.software_flowtable ? _('存在；不等于测速连接已命中') : _('未启用')],
+            [_('USB 多核分流（RPS）'), rpsText],
             [_('NSS 加速连接数（全机）'), 'IPv4: ' + count4 + ' · IPv6: ' + count6],
             [_('无线 NSS 驱动'), data.wifi_nss ? _('已启用，独立于路由转发开关') : _('未启用或无法读取')],
             [_('ZRAM 压缩交换'), zram],
@@ -121,12 +138,16 @@ return view.extend({
         o.rmempty = false;
         o.description = _('影响路由器本机及代理出口的内核 TCP 连接，不改变终端设备的拥塞算法，也不为 UDP/QUIC 提速；新连接生效。');
         o = s.option(form.ListValue, 'nss_mode', _('转发加速模式'));
-        o.value('auto', _('NSS 自动兼容（原默认）'));
-        o.value('software', _('软件流量分载（USB 上网可选）'));
+        o.value('auto', _('NSS 自动兼容'));
+        o.value('software', _('软件流量分载（全新安装默认）'));
         o.value('off', _('关闭'));
-        o.default = 'auto';
+        o.default = 'software';
         o.rmempty = false;
-        o.description = _('NSS 与软件分载互斥；软件模式退出 ECM，硬件流量分载始终关闭。OpenClash 已启用、核心仍运行或 SQM/QoS 工作时，两种转发加速均暂停，条件解除后恢复所选模式。保留原设置，USB 用户可手动对比软件模式。');
+        o.description = _('全新安装默认软件模式，保留配置升级时沿用原选择。NSS 与软件分载互斥，硬件流量分载始终关闭。OpenClash 已启用、核心仍运行或 SQM/QoS 工作时暂停转发分载，条件解除后恢复；USB 多核分流独立控制。');
+        o = s.option(form.Flag, 'usb_rps', _('开启 USB 多核分流（RPS）'));
+        o.default = '1';
+        o.rmempty = false;
+        o.description = _('默认开启。识别 USB 随身 WiFi 接口，使用本机在线的 CPU0/1/3（四核亚瑟掩码 b），重启或 USB 重连后自动恢复，OpenClash 运行时继续保留。关闭时恢复接管前的设置；NSS 转发运行或全局软件包分载接管时暂不叠加。不保证固定提速，也不替代代理加解密。');
         o = s.option(form.Flag, 'zram_enabled', _('开启 ZRAM 压缩交换'));
         o.default = '1';
         o.rmempty = false;

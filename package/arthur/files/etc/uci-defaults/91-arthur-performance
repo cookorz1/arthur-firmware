@@ -2,7 +2,8 @@
 # Fill new options during upgrades without replacing existing USB settings.
 uci -q get arthur.performance >/dev/null || uci -q set arthur.performance=performance
 uci -q get arthur.performance.tcp_cc >/dev/null || uci -q set arthur.performance.tcp_cc=bbr
-uci -q get arthur.performance.nss_mode >/dev/null || uci -q set arthur.performance.nss_mode=auto
+uci -q get arthur.performance.nss_mode >/dev/null || uci -q set arthur.performance.nss_mode=software
+uci -q get arthur.performance.usb_rps >/dev/null || uci -q set arthur.performance.usb_rps=1
 uci -q get arthur.performance.zram_enabled >/dev/null || uci -q set arthur.performance.zram_enabled=1
 uci -q commit arthur
 uci -q get system.@system[0].zram_size_mb >/dev/null || uci -q set system.@system[0].zram_size_mb=128

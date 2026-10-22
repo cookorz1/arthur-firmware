@@ -48,8 +48,18 @@ function text(node) {
     assert.ok(text(rendered).includes('bbr / fq'));
     assert.ok(text(rendered).includes('abc123'));
     assert.equal(callbacks[0].seconds, 5);
-    assert.deepEqual(options.map(x => x.name), ['tcp_cc', 'nss_mode', 'zram_enabled']);
+    assert.deepEqual(options.map(x => x.name), ['tcp_cc', 'nss_mode', 'usb_rps', 'zram_enabled']);
     assert.deepEqual(options[1].values.map(x => x.key), ['auto', 'software', 'off']);
+    assert.equal(options[1].default, 'software');
+    assert.equal(options[2].default, '1');
+    view.updateStatus({...sample, software_flowtable: false, usb_rps: {
+        state: 'active', device: 'usb0', queues: [{queue: 'rx-0', mask: 'b'}]
+    }});
+    assert.ok(text(view.statusRows).includes('OpenClash 兼容保护中'));
+    assert.ok(text(view.statusRows).includes('OpenClash 运行时保留'));
+    assert.ok(text(view.statusRows).includes('rx-0=b'));
+    view.updateStatus({...sample, usb_rps: {state: 'waiting', queues: []}});
+    assert.ok(text(view.statusRows).includes('等待连接随身 WiFi'));
     view.updateStatus({...sample, proxy_guard: false, reason: 'eligible', ecm_stop4: 0, ecm_stop6: 0});
     assert.ok(text(view.statusRows).includes('允许 NSS 转发加速'));
     view.updateStatus({...sample, proxy_guard: false, reason: 'eligible', mode: 'software',

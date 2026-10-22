@@ -46,7 +46,7 @@ jobs:
           echo "artifact=jdy-cookorz-v$version-${GITHUB_SHA:0:12}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
           printf '## jdy-cookorz v%s · by-cookorz\n\n- Source: `%s`\n- Release publication requested: `%s`\n' "$version" "$GITHUB_SHA" "$PUBLISH_RELEASE" >> "$GITHUB_STEP_SUMMARY"
         env:
-          PUBLISH_RELEASE: ${{ inputs.publish_release || false }}
+          PUBLISH_RELEASE: ${{ github.event_name == 'push' || inputs.publish_release || false }}
       - name: Test network panel and persistent USB control
         run: |
           bash -n build.sh
@@ -102,7 +102,7 @@ jobs:
   publish:
     name: Publish versioned release
     needs: build
-    if: github.event_name == 'workflow_dispatch' && inputs.publish_release && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.publish_release)
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -115,5 +115,6 @@ jobs:
       - name: Verify assets and publish release
         env:
           GH_TOKEN: ${{ github.token }}
+          SKIP_EXISTING_RELEASE: ${{ github.event_name == 'push' && '1' || '0' }}
         run: python3 scripts/publish_release.py output
 

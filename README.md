@@ -27,6 +27,8 @@ USB 随身 WiFi 上网 · 中文 Argon 界面 · iStore · OpenClash · 网络�
 
 目前最新测试候选版是 **[v1.5.0-rc.4](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.4)**，对应 [Actions #16](https://github.com/cookorz1/arthur-firmware/actions/runs/39605685842)，源码提交 [`0a712e63c0d9`](https://github.com/cookorz1/arthur-firmware/commit/0a712e63c0d9db085f64419a31ed7a83fca6aad5)。
 
+源码正在推进 **1.5.0-rc.5**：加入默认开启的 USB 多核分流，OpenClash 运行时保留；全新安装默认软件流量分载。新镜像编译与校验完成前，下面仍提供已发布的 rc.4 下载，构建进度见 [Actions](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml)。
+
 | 下载 | 用途 |
 | --- | --- |
 | **[factory.bin · U-Boot 刷入](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.4/jdy-cookorz-arthur-v1.5.0-rc.4-0a712e63c0d9-factory.bin)** | 使用兼容本镜像格式的 U-Boot 刷机 |
@@ -57,7 +59,7 @@ USB 随身 WiFi 上网 · 中文 Argon 界面 · iStore · OpenClash · 网络�
 | 依赖版本 | 固定 feeds 提交，见 [feeds.lock.json](feeds.lock.json) |
 | 维护者 | **by-cookorz** |
 
-刷入前确认自己的设备板型、U-Boot 和分区布局，备份原配置。本项目不更改 U-Boot 或重新分区。
+刷入前确认自己的设备板型、U-Boot 和分区布局，备份原配置。本项目不更改 U-Boot 或重新分区。已展示并验证的设备使用 6 MiB 内核槽和 2 GiB rootfs；这不代表必须扩到 2 GiB，也不代表原厂分区已验证可直接刷入，未知布局请先核对。
 
 ## 常用功能
 
@@ -71,6 +73,7 @@ USB 随身 WiFi 上网 · 中文 Argon 界面 · iStore · OpenClash · 网络�
 | 端口与 USB 状态 | WAN、LAN1–LAN3 链路速率，USB 网卡驱动报告速率，单独显示 USB 总线枚举速率 |
 | 网络质量检测 | 手动检测 WAN / USB 的 IPv4、延迟、丢包和 HTTPS 可达性 |
 | 转发加速 | NSS / 软件流量分载 / 关闭三种选择，OpenClash 与 SQM/QoS 兼容保护 |
+| USB 多核分流（rc.5） | 默认开启的 RPS，重启与 USB 重插后自动恢复，OpenClash 运行时保留，提供独立关闭开关 |
 | 内存管理 | 128 MiB ZRAM、MemAvailable、代理内存参考值和手动缓存回收 |
 | 常用工具与驱动 | USB 网卡、存储及常见文件系统，QMI / MBIM，DDNS、WOL、流量统计、TTYD、SFTP、iperf3、ethtool 等 |
 
@@ -93,15 +96,16 @@ USB 网卡速率、USB 总线速率、蜂窝网络速率是不同的数据，不
 
 1. 随身 WiFi 先开启 USB 网络共享，再接入亚瑟。
 2. 在 **网络 → 亚瑟网络面板** 查看 USB 接入、WAN/LAN 状态，按需运行网络质量检测。
-3. USB 用户可到 **网络 → 加速与内存 → 转发加速模式** 选择软件流量分载，保存并应用后对比实际效果。
+3. USB 用户可到 **网络 → 加速与内存** 查看转发模式。rc.5 全新安装默认软件流量分载和 USB 多核分流；保留配置升级沿用原转发模式，新增多核分流默认开启，可独立关闭。
 4. OpenClash 导入自己的订阅或配置后启用；其他应用在 iStore 按需安装。
 
-OpenClash 启用或核心仍运行时，两种转发分载都会暂停；测速流量是否走代理节点，取决于实际规则。BBR 影响路由器本机及代理出口的内核 TCP 连接，不改变终端设备的拥塞算法。ZRAM 是压缩交换，手动回收只释放可回收缓存，不能清掉程序正在使用的内存。
+OpenClash 启用或核心仍运行时，NSS 和软件转发分载都会暂停，rc.5 的 USB 多核分流继续保留。RPS 分散收包处理，不绕过代理规则，也不替代节点加解密；代理开启后的速度需要单独实测。测速流量是否走代理节点，取决于实际规则。BBR 影响路由器本机及代理出口的内核 TCP 连接，不改变终端设备的拥塞算法。ZRAM 是压缩交换，手动回收只释放可回收缓存，不能清掉程序正在使用的内存。
 
 ## 版本记录
 
 | 版本 | 主要变化 | 下载 |
 | --- | --- | --- |
+| 1.5.0-rc.5 | 默认 USB 多核分流、OpenClash 运行时保留、热插拔恢复 | [构建进度](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml)，待镜像完成 |
 | **1.5.0-rc.4** | USB 软件分载与 OpenClash 保护、实际加速状态 | [最新测试候选版](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.4) |
 | 1.5.0-rc.3 | `jdy-cookorz` 标签页标题与头像图标修复 | [Release](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.3) |
 | 1.5.0-rc.2 | 作者头像、署名、统一版本与来源记录 | [Release](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.2) |

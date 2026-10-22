@@ -137,12 +137,12 @@ if len(roots) != 1:
 root = roots[0]
 required_files = [
     'usr/libexec/rpcd/arthur', 'usr/libexec/arthur-usb', 'usr/libexec/arthur-health', 'etc/init.d/arthur',
-    'usr/libexec/arthur-performance', 'usr/libexec/arthur-performance-watch',
+    'usr/libexec/arthur-performance', 'usr/libexec/arthur-performance-watch', 'usr/libexec/arthur-usb-rps',
     'usr/libexec/arthur-dashboard',
     'etc/init.d/arthur-performance', 'etc/init.d/qca-nss-ecm',
     'etc/uci-defaults/91-arthur-performance', 'etc/arthur-build',
     'etc/arthur-version', 'etc/arthur-release.json',
-    'etc/hotplug.d/net/90-f50', 'etc/config/arthur',
+    'etc/hotplug.d/net/90-f50', 'etc/hotplug.d/net/91-arthur-performance', 'etc/config/arthur',
     'etc/uci-defaults/99-arthur-wireless', 'etc/uci-defaults/zz-arthur-custom',
     'www/luci-static/resources/view/arthur/network.js',
     'www/luci-static/resources/view/arthur/performance.js',
@@ -219,6 +219,7 @@ for relative in firmware_files:
     'openclash_guard_hooks': 3, 'versioned_views': True,
     'performance_modules': ['tcp_bbr', 'sch_fq', 'zram', 'nf_flow_table', 'nf_flow_table_inet', 'nft_flow_offload'],
     'forwarding_modes': ['auto', 'software', 'off'],
+    'usb_rps': {'default_enabled': True, 'mask_policy': 'online CPUs 0/1/3', 'proxy_compatible': True},
     'required_packages': (output / 'required-packages.txt').read_text().splitlines(),
     'hardware_testing': 'pending for enhanced features'
 }, indent=2))
