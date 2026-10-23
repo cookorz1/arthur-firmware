@@ -138,7 +138,11 @@ root = roots[0]
 required_files = [
     'usr/libexec/rpcd/arthur', 'usr/libexec/arthur-usb', 'usr/libexec/arthur-health', 'etc/init.d/arthur',
     'usr/libexec/arthur-performance', 'usr/libexec/arthur-performance-watch', 'usr/libexec/arthur-usb-rps',
-    'usr/libexec/arthur-dashboard',
+    'usr/libexec/arthur-dashboard', 'usr/libexec/arthur-identity',
+    'etc/init.d/arthur-identity', 'etc/uci-defaults/92-arthur-identity',
+    'lib/upgrade/keep.d/arthur-identity',
+    'www/luci-static/resources/view/arthur/identity.js',
+    'www/luci-static/arthur/apply-identity.js',
     'etc/init.d/arthur-performance', 'etc/init.d/qca-nss-ecm',
     'etc/uci-defaults/91-arthur-performance', 'etc/arthur-build',
     'etc/arthur-version', 'etc/arthur-release.json',
@@ -232,4 +236,3 @@ with (output / 'SHA256SUMS').open('w') as stream:
 PY
 python3 "$TASK_ROOT/scripts/firmware_release.py" prepare "$TASK_ROOT" "$TASK_ROOT/output" "$BUILD_ID"
 echo 'Build complete. Artifacts are in output/; confirm the device partition layout before flashing.'
-

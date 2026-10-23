@@ -2,19 +2,53 @@
   "admin/overview": {
     "title": "首页",
     "order": 1,
-    "action": {"type": "view", "path": "arthur/dashboard"},
-    "depends": {"acl": ["luci-app-arthur"]}
+    "action": {
+      "type": "view",
+      "path": "arthur/dashboard"
+    },
+    "depends": {
+      "acl": [
+        "luci-app-arthur"
+      ]
+    }
   },
   "admin/network/arthur": {
     "title": "亚瑟网络面板",
     "order": 5,
-    "action": {"type": "view", "path": "arthur/network"},
-    "depends": {"acl": ["luci-app-arthur"]}
+    "action": {
+      "type": "view",
+      "path": "arthur/network"
+    },
+    "depends": {
+      "acl": [
+        "luci-app-arthur"
+      ]
+    }
   },
   "admin/network/arthur-performance": {
     "title": "加速与内存",
     "order": 6,
-    "action": {"type": "view", "path": "arthur/performance"},
-    "depends": {"acl": ["luci-app-arthur"]}
+    "action": {
+      "type": "view",
+      "path": "arthur/performance"
+    },
+    "depends": {
+      "acl": [
+        "luci-app-arthur"
+      ]
+    }
+  },
+  "admin/system/arthur-identity": {
+    "title": "主机名与 Logo",
+    "order": 6,
+    "action": {
+      "type": "view",
+      "path": "arthur/identity"
+    },
+    "depends": {
+      "acl": [
+        "luci-app-arthur"
+      ]
+    }
   }
 }

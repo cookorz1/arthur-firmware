@@ -55,6 +55,7 @@ jobs:
           node tests/test_view.cjs
           node tests/test_performance_view.cjs
           node tests/test_dashboard_view.cjs
+          node tests/test_identity_view.cjs
       - name: Render and verify dashboard and login
         shell: bash
         run: |

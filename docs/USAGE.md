@@ -124,3 +124,12 @@ rc.4 新增软件流量分载选项。此次实机排查中，设备所有者反
 BBR 作用于路由器本机 TCP 连接，无法解决 USB 2.0 或无线链路的带宽瓶颈；强行绕过 OpenClash / NSS 兼容保护也不能替代排查。软件分载有效后仍有差距，需要继续对照内核、USB 处理与实际网络条件。
 
 参考：[Linux USB 速度定义](https://docs.kernel.org/driver-api/usb/usb.html)、[OpenWrt 无线带宽设置](https://openwrt.org/docs/guide-user/network/wifi/basic)、[Linux 网络多核处理](https://docs.kernel.org/networking/scaling.html)。
+
+
+## 自定义主机名与 Logo（rc.6）
+
+进入 **系统 → 主机名与 Logo**，填写主机名，按需选择 PNG 图片，再点击“保存并刷新”。主机名为1～63位字母、数字或中间的连字符；修改不会改变无线名称、密码或管理 IP。
+
+Logo 最大64KiB，尺寸不超过2048×2048，建议256×256正方形。图片同时显示在登录页、管理界面、账户头像及浏览器标签页，未登录的访问者也能看到，请勿使用包含私人信息的图片。点击“恢复默认 Logo”后还需要保存，才能恢复作者头像。只修改主机名时会保留现有 Logo。
+
+设置会在重启后恢复，保留配置升级时保留；不保留配置刷机将恢复默认值。浏览器图标若仍显示旧图，可关闭旧标签页后重新打开。作者署名 by-cookorz 保留。

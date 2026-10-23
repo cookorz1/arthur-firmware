@@ -1,0 +1,63 @@
+#!/bin/sh
+. "${ARTHUR_JSHN_LIB:-/usr/share/libubox/jshn.sh}"
+ROOT="${ARTHUR_IDENTITY_ROOT:-}"
+state() {
+    name="$(uci -q get system.@system[0].hostname)"
+    json_init
+    json_add_string hostname "$name"
+    json_add_boolean custom_logo "$([ -s "$ROOT/etc/arthur/logo.png" ] && echo 1 || echo 0)"
+    json_dump
+}
+publish() {
+    mkdir -p "$ROOT/www/luci-static/arthur" "$ROOT/etc/arthur"
+    ln -sf /etc/arthur/logo.png "$ROOT/www/luci-static/arthur/custom-logo.png"
+    name="$(uci -q get system.@system[0].hostname)"
+    case "$name" in ''|*[!a-zA-Z0-9-]*) name=jdy-cookorz;; esac
+    logo='/luci-static/arthur/avatar.jpg'
+    if [ -s "$ROOT/etc/arthur/logo.png" ]; then
+        rev="$(cksum "$ROOT/etc/arthur/logo.png" | cut -d ' ' -f1)"
+        logo="/luci-static/arthur/custom-logo.png?v=$rev"
+    fi
+    public_tmp="$(mktemp "$ROOT/www/luci-static/arthur/.identity.XXXXXX")" || return 1
+    printf '{"hostname":"%s","logo":"%s"}\n' "$name" "$logo" > "$public_tmp"
+    chmod 644 "$public_tmp"
+    mv "$public_tmp" "$ROOT/www/luci-static/arthur/identity.json"
+}
+fail() { printf '{"error":"%s"}\n' "$1"; exit 0; }
+case "$1" in
+status) state;;
+publish) publish;;
+save)
+    # Bound request size before parsing; accept only a PNG (maximum 64 KiB).
+    payload="$(head -c 100000)"
+    [ "${#payload}" -lt 100000 ] || fail '请求过大'
+    json_load "$payload" || fail '无效请求'
+    json_get_var hostname hostname
+    json_get_var image image
+    json_get_var reset reset
+    case "$hostname" in ''|-*|*-|*[!a-zA-Z0-9-]*) fail '主机名只能包含字母、数字及中间的连字符';; esac
+    [ "${#hostname}" -le 63 ] || fail '主机名最长63个字符'
+    mkdir -p "$ROOT/etc/arthur"
+    tmp="$(mktemp "$ROOT/etc/arthur/.logo.XXXXXX")" || fail '无法创建临时文件'
+    trap 'rm -f "$tmp"' EXIT HUP INT TERM
+    if [ -n "$image" ]; then
+        [ "$reset" != 1 ] || fail '不能同时上传和恢复默认'
+        case "$image" in *[!A-Za-z0-9+/=]*) fail '无效图片编码';; esac
+        printf '%s' "$image" | base64 -d > "$tmp" 2>/dev/null || fail '图片解码失败'
+        size="$(wc -c < "$tmp")"
+        [ "$size" -le 65536 ] && [ "$size" -ge 45 ] || fail 'PNG图片最大64KiB'
+        magic="$(od -An -tx1 -N16 "$tmp" | tr -d ' \n')"
+        [ "$magic" = 89504e470d0a1a0a0000000d49484452 ] || fail '只支持PNG图片'
+        dimensions="$(od -An -tu1 -j16 -N8 "$tmp")"
+        printf '%s\n' "$dimensions" | awk '{w=$1*16777216+$2*65536+$3*256+$4;h=$5*16777216+$6*65536+$7*256+$8;exit !(NF==8 && w>0 && h>0 && w<=2048 && h<=2048)}' || fail '图片尺寸不能超过2048×2048'
+        end="$(tail -c 12 "$tmp" | od -An -tx1 | tr -d ' \n')"
+        [ "$end" = 0000000049454e44ae426082 ] || fail 'PNG图片不完整'
+    fi
+    uci set "system.@system[0].hostname=$hostname" && uci commit system || fail '主机名保存失败'
+    if [ -n "$image" ]; then chmod 644 "$tmp"; mv "$tmp" "$ROOT/etc/arthur/logo.png" || fail '图片保存失败'; fi
+    [ "$reset" != 1 ] || rm -f "$ROOT/etc/arthur/logo.png"
+    if [ -z "$ROOT" ]; then printf '%s' "$hostname" > /proc/sys/kernel/hostname; fi
+    publish || fail '界面状态更新失败，请重试'
+    state;;
+*) exit 1;;
+esac

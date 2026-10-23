@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-arthur
 PKG_VERSION:=1.5.0
-PKG_RELEASE:=5
+PKG_RELEASE:=6
 PKG_LICENSE:=MIT
 
 include $(INCLUDE_DIR)/package.mk
@@ -37,8 +37,8 @@ define Package/luci-app-arthur/install
 		$(1)/etc/init.d/arthur-performance $(1)/usr/libexec/arthur-performance \
 		$(1)/usr/libexec/arthur-performance-watch $(1)/etc/uci-defaults/91-arthur-performance
 	chmod 0755 $(1)/usr/libexec/arthur-usb-rps $(1)/etc/hotplug.d/net/91-arthur-performance
+	chmod 0755 $(1)/usr/libexec/arthur-identity $(1)/etc/init.d/arthur-identity $(1)/etc/uci-defaults/92-arthur-identity
 	chmod 0755 $(1)/usr/libexec/arthur-dashboard
 endef
 
 $(eval $(call BuildPackage,luci-app-arthur))
-

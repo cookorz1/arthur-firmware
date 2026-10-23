@@ -16,6 +16,8 @@ USB 随身 WiFi 上网 · 双频 Wi-Fi · 中文 Argon · iStore · OpenClash
 
 </div>
 
+> 开发中的下一候选版：**v1.5.0-rc.6**，新增“系统 → 主机名与 Logo”。已发布下载仍以版本列表为准。
+
 ## 项目简介
 
 **CookWrt** 是面向京东云亚瑟 **AX1800 Pro / JDCloud RE-SS-01** 的定制路由固件，基于 LibWrt，由 **cookorz** 维护，仓库名称为 `ax1800pro-cookwrt`。项目重点适配 **USB 随身 WiFi 网络共享、USB 转 Wi-Fi 转发、双频无线、OpenClash 与 iStore 应用管理**。现有 rc.5 的主机名、登录界面及固件文件仍使用 `jdy-cookorz` 标识。

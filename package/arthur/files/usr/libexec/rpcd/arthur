@@ -58,12 +58,14 @@ usb_bus_speed() {
 }
 
 case "$1" in
-    list) printf '{"status":{},"diagnose":{},"performance":{},"release_memory":{},"dashboard":{}}\n' ;;
+    list) printf '{"status":{},"diagnose":{},"performance":{},"release_memory":{},"dashboard":{},"identity":{},"save_identity":{"hostname":"String","image":"String","reset":"Boolean"}}\n' ;;
     call)
         if [ "$2" = diagnose ]; then
             exec "${ARTHUR_HEALTH_SCRIPT:-/usr/libexec/arthur-health}"
         fi
         case "$2" in
+            identity) exec /usr/libexec/arthur-identity status ;;
+            save_identity) exec /usr/libexec/arthur-identity save ;;
             dashboard) exec "${ARTHUR_DASHBOARD_SCRIPT:-/usr/libexec/arthur-dashboard}" ;;
             performance) exec "${ARTHUR_PERF_SCRIPT:-/usr/libexec/arthur-performance}" status ;;
             release_memory) exec "${ARTHUR_PERF_SCRIPT:-/usr/libexec/arthur-performance}" release_memory ;;

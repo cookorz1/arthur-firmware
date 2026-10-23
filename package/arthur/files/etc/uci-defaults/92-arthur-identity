@@ -1,0 +1,4 @@
+#!/bin/sh
+/etc/init.d/arthur-identity enable
+/usr/libexec/arthur-identity publish
+exit 0

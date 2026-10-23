@@ -12,3 +12,5 @@
 <link rel="icon" type="image/jpeg" href="/luci-static/arthur/avatar.jpg?v=@ARTHUR_BUILD@">
 <link rel="icon" type="image/svg+xml" sizes="any" href="/luci-static/arthur/favicon.svg?v=@ARTHUR_BUILD@">
 <link rel="apple-touch-icon" href="/luci-static/arthur/avatar.jpg?v=@ARTHUR_BUILD@">
+
+<script defer src="/luci-static/arthur/apply-identity.js?v=@ARTHUR_BUILD@"></script>

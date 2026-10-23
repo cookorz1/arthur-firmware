@@ -2,9 +2,33 @@
   "luci-app-arthur": {
     "description": "Show link speeds, diagnose uplinks and control USB tethering",
     "read": {
-      "ubus": {"arthur": ["status", "diagnose", "performance", "dashboard"], "system": ["board", "info"]},
-      "uci": ["arthur"]
+      "ubus": {
+        "arthur": [
+          "status",
+          "diagnose",
+          "performance",
+          "dashboard",
+          "identity"
+        ],
+        "system": [
+          "board",
+          "info"
+        ]
+      },
+      "uci": [
+        "arthur"
+      ]
     },
-    "write": {"uci": ["arthur"], "ubus": {"arthur": ["release_memory"]}}
+    "write": {
+      "uci": [
+        "arthur"
+      ],
+      "ubus": {
+        "arthur": [
+          "release_memory",
+          "save_identity"
+        ]
+      }
+    }
   }
 }
