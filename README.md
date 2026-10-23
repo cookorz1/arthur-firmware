@@ -10,7 +10,7 @@ USB 随身 WiFi 上网 · 双频 Wi-Fi · 中文 Argon · iStore · OpenClash
 
 [![构建状态](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml/badge.svg)](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml)
 [![源码版本](https://img.shields.io/badge/source-1.5.0--rc.5-blue)](VERSION)
-[![已发布候选版](https://img.shields.io/badge/release-1.5.0--rc.4-orange)](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.4)
+[![已发布候选版](https://img.shields.io/badge/release-1.5.0--rc.5-orange)](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.5)
 
 [固件下载](https://github.com/cookorz1/arthur-firmware/releases) · [更新日志](CHANGELOG.md) · [源码与构建](#源码与构建) · [使用与排查](docs/USAGE.md)
 
@@ -20,6 +20,8 @@ USB 随身 WiFi 上网 · 双频 Wi-Fi · 中文 Argon · iStore · OpenClash
 
 **jdy-cookorz** 是面向京东云亚瑟 **AX1800 Pro / JDCloud RE-SS-01** 的定制路由固件，基于 LibWrt，由 **cookorz** 维护。项目围绕 USB 随身 WiFi 网络共享、家庭有线与无线接入、应用管理和网络状态查看进行适配。
 
+**rc.5 重点优化 USB 随身 WiFi 上网后，经亚瑟 Wi-Fi 共享的转发体验**，默认开启软件流量分载与 USB 多核分流。使用者提供的三轮对照中，新固件平均为 **425.76 Mbps**，旧固件平均为 **374.30 Mbps**，提升约 **13.7%**，新固件最高为 **465.70 Mbps**。完整采样与测试范围见 [实测记录](docs/PERFORMANCE.md)。
+
 系统集成中文 Argon、双频 Wi-Fi、iStore 和 OpenClash。定制首页集中展示 WAN / USB 流量、端口链路速率、CPU、内存与设备状态；网络面板提供 USB 上网开关和网络质量检测，加速页面统一管理软件流量分载、NSS、USB 多核分流与内存功能。
 
 登录页、管理侧栏和浏览器图标统一使用作者头像与 **by-cookorz** 标识，支持深浅色切换和手机布局。定制代码、构建配置及发布流程公开，每个发布版本保留源码提交、构建记录与镜像校验文件。
@@ -28,20 +30,20 @@ USB 随身 WiFi 上网 · 双频 Wi-Fi · 中文 Argon · iStore · OpenClash
 
 | 状态 | 版本 | 来源 |
 | --- | --- | --- |
-| 当前源码 / 正在构建 | **1.5.0-rc.5** | [功能提交 `01e43e4a7ffa`](https://github.com/cookorz1/arthur-firmware/commit/01e43e4a7ffaf9cd28389c317015b39444bd0047) · [Actions #17](https://github.com/cookorz1/arthur-firmware/actions/runs/39768121777) |
-| 最新已发布候选版 | **1.5.0-rc.4** | [Release](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.4) · [Actions #16](https://github.com/cookorz1/arthur-firmware/actions/runs/39605685842) |
+| 最新已发布候选版 | **1.5.0-rc.5** | [Release](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.5) · [Actions #17](https://github.com/cookorz1/arthur-firmware/actions/runs/39768121777) |
+| 上一候选版 | **1.5.0-rc.4** | [Release](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.4) · [Actions #16](https://github.com/cookorz1/arthur-firmware/actions/runs/39605685842) |
 | 历史版本 | build-4 ～ 1.5.0-rc.3 | [全部 Releases](https://github.com/cookorz1/arthur-firmware/releases) · [历史构建来源](.github/RELEASE_ARCHIVE.md) |
 
-**rc.5 已同步源码，镜像尚在构建。** 完成功能测试、界面检查、编译与附件校验后，将自动发布新的 Pre-release；当前可下载固件仍为 rc.4。构建状态以对应 Actions 为准。
+**rc.5 已构建成功并发布，现可直接下载。** 对应源码提交 [`01e43e4a7ffa`](https://github.com/cookorz1/arthur-firmware/tree/01e43e4a7ffaf9cd28389c317015b39444bd0047)，已通过行为测试、界面检查、编译与附件校验，并收到 USB 共享经 Wi-Fi 使用的实测反馈；继续保留 Pre-release 标记。
 
-### rc.4 固件下载
+### rc.5 固件下载
 
 | 文件 | 用途 |
 | --- | --- |
-| **[factory.bin](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.4/jdy-cookorz-arthur-v1.5.0-rc.4-0a712e63c0d9-factory.bin)** | 通过兼容本镜像格式及分区布局的 U-Boot 刷入 |
-| **[sysupgrade.bin](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.4/jdy-cookorz-arthur-v1.5.0-rc.4-0a712e63c0d9-sysupgrade.bin)** | 从板型和分区布局匹配的系统内升级 |
-| [SHA256SUMS](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.4/SHA256SUMS) | 下载完整性校验 |
-| [FIRMWARE_VERSION.json](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.4/FIRMWARE_VERSION.json) | 镜像名称、大小、SHA-256、源码提交及原始构建记录 |
+| **[factory.bin](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.5/jdy-cookorz-arthur-v1.5.0-rc.5-01e43e4a7ffa-factory.bin)** | 通过兼容本镜像格式及分区布局的 U-Boot 刷入 |
+| **[sysupgrade.bin](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.5/jdy-cookorz-arthur-v1.5.0-rc.5-01e43e4a7ffa-sysupgrade.bin)** | 从板型和分区布局匹配的系统内升级 |
+| [SHA256SUMS](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.5/SHA256SUMS) | 下载完整性校验 |
+| [FIRMWARE_VERSION.json](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.5/FIRMWARE_VERSION.json) | 镜像名称、大小、SHA-256、源码提交及原始构建记录 |
 
 使用 U-Boot 刷机时选择 **factory.bin**。GitHub 自动附带的 **Source code ZIP / TAR 是源码包**；刷机使用 Release 附件中的 `.bin`。Actions 的 Artifacts 为 ZIP，需要先解压。
 
@@ -53,7 +55,7 @@ USB 随身 WiFi 上网 · 双频 Wi-Fi · 中文 Argon · iStore · OpenClash
 - **保留代理兼容保护**：OpenClash 配置启用或核心仍运行时，NSS 和软件转发分载暂停，条件解除后恢复所选模式。
 - **新版本自动发布**：成功构建的新版本经来源与附件校验后发布；已有 Release 和镜像保持原样。
 
-软件分载在项目维护设备上已有突破 500 Mbps 的反馈；RPS 对比测试仍存在移动网络波动。上述结果仅作为调试记录，不代表所有设备或代理节点都能达到相同速度。rc.5 新镜像的启动、热插拔和实际代理表现仍待刷入验收。完整变化见 [CHANGELOG.md](CHANGELOG.md)。
+rc.5 已收到 USB 上网经 Wi-Fi 转发的测速反馈，三次完整采样的平均值较旧固件提升约 13.7%；各次仍有波动。该结果反映本次设备与网络条件下的整体表现，不能单独归因于 RPS，也不能作为代理节点测速结果。长时间稳定性、USB 重连恢复和 OpenClash 实际吞吐仍待补充验收。完整数据见 [实测记录](docs/PERFORMANCE.md)，功能变化见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 设备与刷入条件
 
@@ -87,7 +89,7 @@ USB 网卡报告速率、USB 总线速率和蜂窝网络测速分别展示。网
 
 ## 默认设置与首次使用
 
-电脑通过网线连接 LAN，打开 **http://192.168.10.1**。
+电脑通过网线连接 LAN，打开 **[http://192.168.10.1](http://192.168.10.1)**。
 
 | 项目 | 全新安装的初始值 |
 | --- | --- |

@@ -2,13 +2,14 @@
 
 [项目首页](../README.md) · [Releases](https://github.com/cookorz1/arthur-firmware/releases) · [更新日志](../CHANGELOG.md)
 
-我把已经成功编译的固件统一放在 Releases，方便直接下载和回退。镜像来自各自的原始 Actions 构建，没有重新编译、修改镜像或替换旧版附件。最近两版于 **2026-10-22** 补充发布。
+已成功编译的固件统一发布至 Releases，便于下载与回退。镜像固定到各自的原始 Actions 构建。rc.5 已由构建流程自动发布；rc.3 与 rc.4 于 **2026-10-22** 补充归档，原始镜像与旧版附件保持不变。
 
 ## 已发布版本
 
 | 版本 | 主要变化 | 原构建 |
 | --- | --- | --- |
-| [**v1.5.0-rc.4**](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.4) | USB 软件分载、NSS 互斥与 OpenClash 兼容保护 | [#16](https://github.com/cookorz1/arthur-firmware/actions/runs/39605685842) |
+| [**v1.5.0-rc.5**](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.5) | 默认 USB RPS、OpenClash 运行时保留多核分流、Wi-Fi 转发实测反馈 | [#17](https://github.com/cookorz1/arthur-firmware/actions/runs/39768121777) |
+| [v1.5.0-rc.4](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.4) | USB 软件分载、NSS 互斥与 OpenClash 兼容保护 | [#16](https://github.com/cookorz1/arthur-firmware/actions/runs/39605685842) |
 | [v1.5.0-rc.3](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.3) | 标签页标题、作者头像图标与缓存引用修复 | [#15](https://github.com/cookorz1/arthur-firmware/actions/runs/39564528452) |
 | [v1.5.0-rc.2](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.2) | 作者头像、署名和统一版本记录 | [#14](https://github.com/cookorz1/arthur-firmware/actions/runs/39545381685) |
 | [v1.4.0](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.4.0) | 雪山界面、定制首页、深浅色与手机布局 | [#12](https://github.com/cookorz1/arthur-firmware/actions/runs/39477735748) |
@@ -18,7 +19,7 @@
 | [v1.0.0](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.0.0) | 双频 Wi-Fi、Argon、端口速率、USB 开关 | [#5](https://github.com/cookorz1/arthur-firmware/actions/runs/39327147839) |
 | [build-4](https://github.com/cookorz1/arthur-firmware/releases/tag/build-4) | 初始 USB 上网、OpenClash、iStore | [#4](https://github.com/cookorz1/arthur-firmware/actions/runs/39305190653) |
 
-所有条目均按测试候选版或历史归档标记为 Pre-release。最新测试候选版是 **rc.4**；早期的 `1.0.0～1.4.0` 名称取自当时的界面包版本，不代表后来补做了稳定版实机验收。初始构建没有独立项目版本号，以 `build-4` 标识。
+所有条目均按测试候选版或历史归档标记为 Pre-release。最新测试候选版是 **rc.5**，已收到 [USB 共享经 Wi-Fi 的实测反馈](../docs/PERFORMANCE.md)；早期的 `1.0.0～1.4.0` 名称取自当时的界面包版本，不代表后来补做了稳定版实机验收。初始构建没有独立项目版本号，以 `build-4` 标识。
 
 `1.5.0-rc.1` 的构建被取消，没有生成可发布镜像。失败或取消的记录仍在 Actions，不创建空的 Release。
 
@@ -26,7 +27,7 @@
 
 - U-Boot 刷入使用 `factory.bin`；系统内升级使用 `sysupgrade.bin`，都要匹配设备及分区布局。
 - `SHA256SUMS` 是原始镜像的校验值。
-- `ARCHIVE_RECORD.json` 固定记录原构建、原产物摘要、源码提交及两份镜像的 SHA-256。
+- 历史补发版本的 `ARCHIVE_RECORD.json` 固定记录原构建、原产物摘要、源码提交及两份镜像的 SHA-256；正常自动发布的 rc.5 使用 `FIRMWARE_VERSION.json` 记录来源。
 - 近期版本附带 `FIRMWARE_VERSION.json`、原始更新说明、包清单与依赖版本；旧版的默认设置以对应提交为准。
 - GitHub 自动提供的 Source code ZIP / TAR 是源码，刷机请下载附件中的 `.bin`。
 
