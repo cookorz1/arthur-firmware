@@ -9,49 +9,59 @@
 USB 随身 WiFi 上网 · 双频 Wi-Fi · 中文 Argon · iStore · OpenClash
 
 [![构建状态](https://github.com/cookorz1/ax1800pro-cookwrt/actions/workflows/build.yml/badge.svg)](https://github.com/cookorz1/ax1800pro-cookwrt/actions/workflows/build.yml)
-[![源码版本](https://img.shields.io/badge/source-1.5.0--rc.5-blue)](VERSION)
-[![已发布候选版](https://img.shields.io/badge/release-1.5.0--rc.5-orange)](https://github.com/cookorz1/ax1800pro-cookwrt/releases/tag/v1.5.0-rc.5)
+[![源码版本](https://img.shields.io/badge/source-1.5.0--rc.6-blue)](VERSION)
+[![已发布候选版](https://img.shields.io/badge/release-1.5.0--rc.6-orange)](https://github.com/cookorz1/ax1800pro-cookwrt/releases/tag/v1.5.0-rc.6)
 
 [固件下载](https://github.com/cookorz1/ax1800pro-cookwrt/releases) · [更新日志](CHANGELOG.md) · [源码与构建](#源码与构建) · [使用与排查](docs/USAGE.md)
 
 </div>
 
-> 开发中的下一候选版：**v1.5.0-rc.6**，新增“系统 → 主机名与 Logo”。已发布下载仍以版本列表为准。
+> **v1.5.0-rc.6 已发布**：新增自定义主机名与 Logo 上传。进入“系统 → 主机名与 Logo”即可设置；[下载最新候选版](https://github.com/cookorz1/ax1800pro-cookwrt/releases/tag/v1.5.0-rc.6)。
 
 ## 项目简介
 
-**CookWrt** 是面向京东云亚瑟 **AX1800 Pro / JDCloud RE-SS-01** 的定制路由固件，基于 LibWrt，由 **cookorz** 维护，仓库名称为 `ax1800pro-cookwrt`。项目重点适配 **USB 随身 WiFi 网络共享、USB 转 Wi-Fi 转发、双频无线、OpenClash 与 iStore 应用管理**。现有 rc.5 的主机名、登录界面及固件文件仍使用 `jdy-cookorz` 标识。
+**CookWrt** 是面向京东云亚瑟 **AX1800 Pro / JDCloud RE-SS-01** 的定制路由固件，基于 LibWrt，由 **cookorz** 维护，仓库名称为 `ax1800pro-cookwrt`。项目重点适配 **USB 随身 WiFi 网络共享、USB 转 Wi-Fi 转发、双频无线、OpenClash 与 iStore 应用管理**。默认主机名及固件文件使用 `jdy-cookorz` 标识；rc.6 支持自行修改主机名并上传界面 Logo。
 
 **rc.5 重点优化 USB 随身 WiFi 上网后，经亚瑟 Wi-Fi 共享的转发体验**，默认开启软件流量分载与 USB 多核分流。使用者提供的三轮对照中，新固件平均为 **425.76 Mbps**，旧固件平均为 **374.30 Mbps**，提升约 **13.7%**，新固件最高为 **465.70 Mbps**。完整采样与测试范围见 [实测记录](docs/PERFORMANCE.md)。
 
 系统集成中文 Argon、双频 Wi-Fi、iStore 和 OpenClash。定制首页集中展示 WAN / USB 流量、端口链路速率、CPU、内存与设备状态；网络面板提供 USB 上网开关和网络质量检测，加速页面统一管理软件流量分载、NSS、USB 多核分流与内存功能。
 
-登录页、管理侧栏和浏览器图标统一使用作者头像与 **by-cookorz** 标识，支持深浅色切换和手机布局。定制代码、构建配置及发布流程公开，每个发布版本保留源码提交、构建记录与镜像校验文件。
+登录页、管理侧栏和浏览器图标默认使用作者头像，rc.6 可上传自己的 PNG Logo 并统一应用；**by-cookorz** 作者署名保留，支持深浅色切换和手机布局。定制代码、构建配置及发布流程公开，每个发布版本保留源码提交、构建记录与镜像校验文件。
 
-项目主题：`openwrt` · `jdcloud` · `ax1800pro` · `usb-tethering` · `openclash`。最新候选版 **v1.5.0-rc.5** 已发布，默认 USB RPS 多核分流，OpenClash 运行时保留；全新安装默认软件流量分载。
+项目主题：`openwrt` · `jdcloud` · `ax1800pro` · `usb-tethering` · `openclash`。最新候选版 **v1.5.0-rc.6** 已发布，新增主机名与 Logo 设置，沿用 rc.5 的 USB RPS 多核分流和 OpenClash 兼容保护；本版不调整加速参数。
 
 ## 版本状态与下载
 
 | 状态 | 版本 | 来源 |
 | --- | --- | --- |
-| 最新已发布候选版 | **1.5.0-rc.5** | [Release](https://github.com/cookorz1/ax1800pro-cookwrt/releases/tag/v1.5.0-rc.5) · [Actions #17](https://github.com/cookorz1/ax1800pro-cookwrt/actions/runs/39768121777) |
-| 上一候选版 | **1.5.0-rc.4** | [Release](https://github.com/cookorz1/ax1800pro-cookwrt/releases/tag/v1.5.0-rc.4) · [Actions #16](https://github.com/cookorz1/ax1800pro-cookwrt/actions/runs/39605685842) |
-| 历史版本 | build-4 ～ 1.5.0-rc.3 | [全部 Releases](https://github.com/cookorz1/ax1800pro-cookwrt/releases) · [历史构建来源](.github/RELEASE_ARCHIVE.md) |
+| 最新已发布候选版 | **1.5.0-rc.6** | [Release](https://github.com/cookorz1/ax1800pro-cookwrt/releases/tag/v1.5.0-rc.6) · [Actions #18](https://github.com/cookorz1/ax1800pro-cookwrt/actions/runs/39922241603) |
+| 上一候选版 | **1.5.0-rc.5** | [Release](https://github.com/cookorz1/ax1800pro-cookwrt/releases/tag/v1.5.0-rc.5) · [Actions #17](https://github.com/cookorz1/ax1800pro-cookwrt/actions/runs/39768121777) |
+| 历史版本 | build-4 ～ 1.5.0-rc.4 | [全部 Releases](https://github.com/cookorz1/ax1800pro-cookwrt/releases) · [历史构建来源](.github/RELEASE_ARCHIVE.md) |
 
-**rc.5 已构建成功并发布，现可直接下载。** 对应源码提交 [`01e43e4a7ffa`](https://github.com/cookorz1/ax1800pro-cookwrt/tree/01e43e4a7ffaf9cd28389c317015b39444bd0047)，已通过行为测试、界面检查、编译与附件校验，并收到 USB 共享经 Wi-Fi 使用的实测反馈；继续保留 Pre-release 标记。
+**rc.6 已构建成功并发布，现可直接下载。** 固件源码固定为 [`99e4a1f339c0`](https://github.com/cookorz1/ax1800pro-cookwrt/tree/99e4a1f339c0d6a72d864754df81180a005a2410)，来自 Actions #18，构建结果为 success。保留 Pre-release 标记；主机名修改、Logo 上传及升级保留仍待实机验收。
 
-### rc.5 固件下载
+### rc.6 固件下载
 
 | 文件 | 用途 |
 | --- | --- |
-| **[factory.bin](https://github.com/cookorz1/ax1800pro-cookwrt/releases/download/v1.5.0-rc.5/jdy-cookorz-arthur-v1.5.0-rc.5-01e43e4a7ffa-factory.bin)** | 通过兼容本镜像格式及分区布局的 U-Boot 刷入 |
-| **[sysupgrade.bin](https://github.com/cookorz1/ax1800pro-cookwrt/releases/download/v1.5.0-rc.5/jdy-cookorz-arthur-v1.5.0-rc.5-01e43e4a7ffa-sysupgrade.bin)** | 从板型和分区布局匹配的系统内升级 |
-| [SHA256SUMS](https://github.com/cookorz1/ax1800pro-cookwrt/releases/download/v1.5.0-rc.5/SHA256SUMS) | 下载完整性校验 |
-| [FIRMWARE_VERSION.json](https://github.com/cookorz1/ax1800pro-cookwrt/releases/download/v1.5.0-rc.5/FIRMWARE_VERSION.json) | 镜像名称、大小、SHA-256、源码提交及原始构建记录 |
+| **[factory.bin](https://github.com/cookorz1/ax1800pro-cookwrt/releases/download/v1.5.0-rc.6/jdy-cookorz-arthur-v1.5.0-rc.6-99e4a1f339c0-factory.bin)** | 通过兼容本镜像格式及分区布局的 U-Boot 刷入 |
+| **[sysupgrade.bin](https://github.com/cookorz1/ax1800pro-cookwrt/releases/download/v1.5.0-rc.6/jdy-cookorz-arthur-v1.5.0-rc.6-99e4a1f339c0-sysupgrade.bin)** | 从板型和分区布局匹配的系统内升级 |
+| [SHA256SUMS](https://github.com/cookorz1/ax1800pro-cookwrt/releases/download/v1.5.0-rc.6/SHA256SUMS) | 下载完整性校验 |
+| [FIRMWARE_VERSION.json](https://github.com/cookorz1/ax1800pro-cookwrt/releases/download/v1.5.0-rc.6/FIRMWARE_VERSION.json) | 镜像名称、大小、SHA-256、源码提交及原始构建记录 |
 
 使用 U-Boot 刷机时选择 **factory.bin**。GitHub 自动附带的 **Source code ZIP / TAR 是源码包**；刷机使用 Release 附件中的 `.bin`。Actions 的 Artifacts 为 ZIP，需要先解压。
 
-### rc.5 更新重点
+### rc.6 更新重点
+
+- **自定义主机名**：在“系统 → 主机名与 Logo”修改，支持1～63位字母、数字及中间的连字符，不改变 Wi-Fi 名称、密码或管理 IP。
+- **上传自己的 Logo**：支持 PNG，最大64KiB、尺寸不超过2048×2048，建议256×256；提供预览、保存和恢复默认作者头像。
+- **统一界面标识**：Logo 同步用于登录页、管理标志、账户头像及浏览器图标，主机名同步到页面标题和品牌文字，保留 by-cookorz 署名。
+- **保留个性化设置**：重启及保留配置升级后保留；不保留配置刷机会恢复默认。Logo 在未登录页面也会展示。
+- **沿用现有提速策略**：USB RPS、软件转发及 OpenClash 兼容保护保持 rc.5 行为，本版不宣称新增吞吐提升。
+
+操作步骤见 [自定义主机名与 Logo](docs/USAGE.md)，完整版本变化见 [更新日志](CHANGELOG.md)。
+
+### 延续 rc.5 的 USB 与 Wi-Fi 转发优化
 
 - **USB 多核分流默认开启**：四核亚瑟使用在线 CPU0、CPU1、CPU3，自动识别 USB 共享网卡，开机和重插后恢复设置。
 - **OpenClash 运行时保留 RPS**：接收处理分流与转发分载独立控制，页面显示接口、队列掩码及实际状态。
@@ -79,6 +89,7 @@ rc.5 已收到 USB 上网经 Wi-Fi 转发的测速反馈，三次完整采样的
 | 功能 | 内容 |
 | --- | --- |
 | 定制管理首页 | WAN / USB 实时流量、CPU、可用内存、存储、端口状态、设备列表与应用入口 |
+| 主机名与 Logo | 自定义设备主机名、PNG Logo 上传与预览、恢复默认；同步登录页、管理界面及浏览器图标 |
 | 中文 Argon | 雪山登录页、统一作者标识、深浅色切换与手机布局 |
 | 双频 Wi-Fi | 亚瑟原生 ath11k 驱动及板级固件，2.4 GHz / 5 GHz AP |
 | 应用与代理 | iStore、OpenClash，以及构建时记录版本与摘要的 Mihomo ARM64 核心 |
@@ -103,15 +114,16 @@ USB 网卡报告速率、USB 总线速率和蜂窝网络测速分别展示。网
 | 5 GHz 名称 / 密码 | `jdy-cookorz5G` / `jdy-cookorz5G` |
 | 无线模式 | WPA2-PSK / AES；2.4 GHz HE20，5 GHz HE80 |
 | 时区 | 中国上海 |
-| rc.5 转发模式 | 软件流量分载 |
-| rc.5 USB 多核分流 | 默认开启 |
+| rc.6 转发模式 | 软件流量分载 |
+| rc.6 USB 多核分流 | 默认开启 |
 
 保留配置升级会沿用已有主机名、密码、无线及转发模式；新增加的 USB 多核分流选项默认开启，已有明确关闭设置予以保留。无线初始化可能需要约一分钟，首次登录后请修改管理与无线密码。
 
 1. 在随身 WiFi 上开启 USB 网络共享，再连接亚瑟。
 2. 打开 **网络 → 亚瑟网络面板**，查看 USB 接入、端口状态，按需运行网络质量检测。
 3. 打开 **网络 → 加速与内存**，确认转发模式与 USB 多核分流状态。
-4. 在 OpenClash 中导入订阅或配置后启用；其他应用通过 iStore 按需安装。
+4. 打开 **系统 → 主机名与 Logo**，按需修改设备名称并上传自己的 Logo，点击“保存并刷新”。
+5. 在 OpenClash 中导入订阅或配置后启用；其他应用通过 iStore 按需安装。
 
 详细操作见 [使用与排查](docs/USAGE.md)。
 
@@ -147,7 +159,7 @@ cd ax1800pro-cookwrt
 | [tests](tests) | 行为、界面与发布校验测试 |
 | [.github/workflows](.github/workflows) | 自动构建、发布及历史固件归档流程 |
 
-本仓库保存构建配置与定制代码，LibWrt、LuCI 等上游源码在构建时按固定提交获取。完整编译环境与命令见 [BUILDING.md](docs/BUILDING.md)；rc.5 功能源码固定在 [`01e43e4a7ffa`](https://github.com/cookorz1/ax1800pro-cookwrt/tree/01e43e4a7ffaf9cd28389c317015b39444bd0047)。
+本仓库保存构建配置与定制代码，LibWrt、LuCI 等上游源码在构建时按固定提交获取。完整编译环境与命令见 [BUILDING.md](docs/BUILDING.md)；rc.6 固件源码固定在 [`99e4a1f339c0`](https://github.com/cookorz1/ax1800pro-cookwrt/tree/99e4a1f339c0d6a72d864754df81180a005a2410)。
 
 ## 版本记录与反馈
 

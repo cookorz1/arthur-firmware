@@ -4,6 +4,8 @@
 
 ## [1.5.0-rc.6] - 2026-10-23
 
+**已构建并发布**：[Release](https://github.com/cookorz1/ax1800pro-cookwrt/releases/tag/v1.5.0-rc.6) · [Actions #18](https://github.com/cookorz1/ax1800pro-cookwrt/actions/runs/39922241603)。固件源码 `99e4a1f339c0d6a72d864754df81180a005a2410`；factory / sysupgrade 及校验文件已提供。保留候选版标记，实机验收待补充。
+
 - 新增“系统 → 主机名与 Logo”：修改主机名、上传 PNG Logo、恢复默认作者头像。
 - Logo 同步用于登录页、管理标志、账户头像和浏览器图标；主机名同步到标题和品牌文字，不修改无线名称或管理地址。
 - 图片限制64KiB，前端限制2048×2048，后端独立校验编码、PNG头尾及大小；写操作要求登录及对应权限。

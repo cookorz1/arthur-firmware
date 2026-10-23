@@ -1,1 +1,1 @@
-CookWrt｜京东云亚瑟 AX1800 Pro / JDCloud RE-SS-01 定制固件，基于 LibWrt。优化 USB 网络共享与 Wi-Fi 转发，集成 OpenClash、iStore、中文 Argon。rc.5 默认 USB RPS 多核分流，OpenClash 运行时保留。by-cookorz
+CookWrt｜京东云亚瑟 AX1800 Pro / JDCloud RE-SS-01 定制固件。优化 USB 网络共享与 Wi-Fi 转发，集成 OpenClash、iStore、中文 Argon。v1.5.0-rc.6 支持自定义主机名与 Logo 上传，保留 USB RPS 多核分流及代理兼容保护。by-cookorz
