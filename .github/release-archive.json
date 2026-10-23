@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "repository": "cookorz1/arthur-firmware",
+  "repository": "cookorz1/ax1800pro-cookwrt",
   "releases": [
     {
       "tag": "build-4",
@@ -17,7 +17,8 @@
       "changes": [
         "集成 OpenClash、iStore 和 USB 网络共享相关驱动。",
         "修正 iStore 所需的 XZ 依赖，形成第一份成功构建的固件。"
-      ]
+      ],
+      "record_repository": "cookorz1/arthur-firmware"
     },
     {
       "tag": "v1.0.0",
@@ -34,7 +35,8 @@
       "changes": [
         "加入双频 Wi-Fi、中文 Argon 主题和常用软件驱动。",
         "增加 WAN / LAN 端口速率面板和可保存状态的 USB 上网开关。"
-      ]
+      ],
+      "record_repository": "cookorz1/arthur-firmware"
     },
     {
       "tag": "v1.1.0",
@@ -51,7 +53,8 @@
       "changes": [
         "初始化 jdy-cookorz 主机名、root / password 及双频 Wi-Fi 设置。",
         "改善无线启动，分别显示 USB 网卡链路速率和 USB 总线速率。"
-      ]
+      ],
+      "record_repository": "cookorz1/arthur-firmware"
     },
     {
       "tag": "v1.2.0",
@@ -68,7 +71,8 @@
       "changes": [
         "增加 WAN / USB 的延迟、丢包和 HTTPS 可达性检测。",
         "将页面中的 F50 文案改为随身 WiFi，完善通用 USB 网络共享支持。"
-      ]
+      ],
+      "record_repository": "cookorz1/arthur-firmware"
     },
     {
       "tag": "v1.3.0",
@@ -85,7 +89,8 @@
       "changes": [
         "加入 BBR / Cubic、NSS 自动兼容保护和 ZRAM。",
         "增加手动缓存回收与内存状态面板，处理 OpenClash、NSS 和 QoS 的兼容关系。"
-      ]
+      ],
+      "record_repository": "cookorz1/arthur-firmware"
     },
     {
       "tag": "v1.4.0",
@@ -102,7 +107,8 @@
       "changes": [
         "加入雪山登录页与 jdy-cookorz 首页，展示 WAN / USB 流量和设备状态。",
         "完善深浅色主题、管理入口搜索和手机布局，修正暗色文字对比度及移动菜单。"
-      ]
+      ],
+      "record_repository": "cookorz1/arthur-firmware"
     },
     {
       "tag": "v1.5.0-rc.2",
@@ -119,7 +125,8 @@
       "changes": [
         "统一使用 cookorz 头像作为登录页、侧栏、右上角及标签页图标，加入 by-cookorz 署名。",
         "整理项目首页、更新日志和使用文档，统一固件版本、文件名与来源记录。"
-      ]
+      ],
+      "record_repository": "cookorz1/arthur-firmware"
     },
     {
       "tag": "v1.5.0-rc.3",
@@ -136,7 +143,8 @@
       "changes": [
         "浏览器标签页标题统一为 jdy-cookorz，登录页和后台共用作者头像图标，清除原 Argon 图标及清单引用。",
         "保留雪山中文界面、iStore、OpenClash、Wi-Fi、USB 网络面板与原有加速保护，增加标题及图标一致性检查。"
-      ]
+      ],
+      "record_repository": "cookorz1/arthur-firmware"
     },
     {
       "tag": "v1.5.0-rc.4",
@@ -155,7 +163,8 @@
         "软件模式先卸载 ECM；切回 NSS 或开启 OpenClash 前撤销软件分载规则。SQM/QoS 同样触发保护，条件解除后恢复所选模式。",
         "首页和性能页区分规则已启用、代理保护、未就绪与冲突状态；补齐模块缺失、规则失败和 ECM 退出失败的回退测试。",
         "所有行为测试、浏览器界面检查和编译校验通过。此前手动对照反馈软件分载突破 400 Mbps；新镜像的完整实机共存验收仍待完成，不保证固定网速。"
-      ]
+      ],
+      "record_repository": "cookorz1/arthur-firmware"
     }
   ]
 }

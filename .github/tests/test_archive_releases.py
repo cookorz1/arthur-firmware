@@ -39,6 +39,66 @@ class ArchiveTests(unittest.TestCase):
         plan = archive.read_plan(ROOT/'.github/release-archive.json')
         self.assertEqual([x['run_number'] for x in plan['releases']], [4,5,6,7,8,12,14,15,16])
         self.assertEqual(plan['releases'][-1]['tag'], 'v1.5.0-rc.4')
+        self.assertEqual(plan['repository'], 'cookorz1/ax1800pro-cookwrt')
+
+    def prepare_fixture(self, item):
+        repository = 'cookorz1/ax1800pro-cookwrt'
+        run = {'id': item['run_id'], 'run_number': item['run_number'], 'status': 'completed',
+               'conclusion': 'success', 'head_sha': item['source_commit'],
+               'html_url': f'https://github.com/{repository}/actions/runs/{item["run_id"]}',
+               'created_at': '2026-01-01T00:00:00Z'}
+        artifact = {'id': item['artifact_id'], 'name': item['artifact_name'], 'expired': False,
+                    'digest': 'sha256:' + item['artifact_sha256'],
+                    'workflow_run': {'id': item['run_id'], 'head_sha': item['source_commit']}}
+        def extract(item, source, output):
+            output.mkdir()
+            paths = []
+            for kind in ('factory', 'sysupgrade'):
+                path = output / f'libwrt-jdcloud_re-ss-01-squashfs-{kind}.bin'
+                path.write_bytes(('fixture-' + kind).encode())
+                paths.append(path)
+            return paths
+        with patch.object(archive, 'api', side_effect=[run, artifact]) as api, \
+             patch.object(archive, 'command', return_value='') as command, \
+             patch.object(archive, 'extract_verified', side_effect=extract):
+            assets, note = archive.prepare(item, repository, self.root)
+        for call in api.call_args_list:
+            self.assertTrue(call.args[0].startswith('repos/' + repository + '/'))
+        self.assertTrue(command.call_args.args[1].startswith('repos/' + repository + '/'))
+        record = next(path for path in assets if path.name == 'ARCHIVE_RECORD.json')
+        return record, note
+
+    def test_renamed_repository_preserves_all_nine_legacy_records_and_notes_byte_for_byte(self):
+        expected = json.loads((ROOT/'.github/tests/legacy_archive_hashes.json').read_text())
+        plan = archive.read_plan(ROOT/'.github/release-archive.json')
+        for item in plan['releases']:
+            with self.subTest(tag=item['tag']):
+                record, note = self.prepare_fixture(item)
+                self.assertEqual(archive.digest(record), expected[item['tag']]['record'])
+                self.assertEqual(archive.digest(note), expected[item['tag']]['note'])
+
+    def test_new_archives_without_legacy_namespace_use_current_repository(self):
+        self.item.pop('record_repository')
+        record, note = self.prepare_fixture(self.item)
+        data = json.loads(record.read_text())
+        self.assertEqual(data['repository'], 'cookorz1/ax1800pro-cookwrt')
+        self.assertTrue(data['source_run_url'].startswith(
+            'https://github.com/cookorz1/ax1800pro-cookwrt/actions/runs/'))
+        self.assertNotIn('cookorz1/arthur-firmware', note.read_text())
+
+    def test_archive_plan_rejects_other_current_or_historical_repositories(self):
+        plan = json.loads((ROOT/'.github/release-archive.json').read_text())
+        path = self.root/'plan.json'
+        changed = copy.deepcopy(plan)
+        changed['repository'] = 'someone/other'
+        path.write_text(json.dumps(changed))
+        with self.assertRaises(ValueError):
+            archive.read_plan(path)
+        changed = copy.deepcopy(plan)
+        changed['releases'][0]['record_repository'] = 'someone/other'
+        path.write_text(json.dumps(changed))
+        with self.assertRaises(ValueError):
+            archive.read_plan(path)
 
     def test_only_the_pinned_successful_run_and_artifact_are_accepted(self):
         i=self.item
@@ -76,7 +136,7 @@ class ArchiveTests(unittest.TestCase):
 
     def test_existing_tag_must_point_to_the_original_source(self):
         with patch.object(archive,'api',return_value={'object':{'type':'commit','sha':'0'*40}}), self.assertRaises(ValueError):
-            archive.verify_tag('cookorz1/arthur-firmware',self.item['tag'],self.item['source_commit'])
+            archive.verify_tag('cookorz1/ax1800pro-cookwrt',self.item['tag'],self.item['source_commit'])
 
     def fake_publication(self, partial=False, published=False, wrong_source=False):
         paths=[]
@@ -113,7 +173,7 @@ class ArchiveTests(unittest.TestCase):
     def test_draft_is_published_only_after_all_uploaded_assets_match(self):
         paths,note,state,calls,api,command=self.fake_publication()
         with patch.object(archive,'api',side_effect=api),patch.object(archive,'command',side_effect=command):
-            archive.publish(self.item,paths,note,'cookorz1/arthur-firmware')
+            archive.publish(self.item,paths,note,'cookorz1/ax1800pro-cookwrt')
         self.assertFalse(state['draft'])
         self.assertEqual([c[0] for c in calls],['api','release','release'])
         self.assertEqual([c[1] for c in calls[1:]],['upload','edit'])
@@ -122,17 +182,17 @@ class ArchiveTests(unittest.TestCase):
     def test_partial_upload_retains_draft_and_never_publishes(self):
         paths,note,state,calls,api,command=self.fake_publication(partial=True)
         with patch.object(archive,'api',side_effect=api),patch.object(archive,'command',side_effect=command),self.assertRaisesRegex(ValueError,'incomplete'):
-            archive.publish(self.item,paths,note,'cookorz1/arthur-firmware')
+            archive.publish(self.item,paths,note,'cookorz1/ax1800pro-cookwrt')
         self.assertTrue(state['draft']);self.assertNotIn('edit',[c[1] for c in calls])
 
     def test_verified_existing_release_is_not_modified(self):
         paths,note,state,calls,api,command=self.fake_publication(published=True)
         with patch.object(archive,'api',side_effect=api),patch.object(archive,'command',side_effect=command):
-            archive.publish(self.item,paths,note,'cookorz1/arthur-firmware')
+            archive.publish(self.item,paths,note,'cookorz1/ax1800pro-cookwrt')
         self.assertEqual(calls,[])
 
     def test_existing_release_from_another_commit_is_never_changed(self):
         paths,note,state,calls,api,command=self.fake_publication(published=True,wrong_source=True)
         with patch.object(archive,'api',side_effect=api),patch.object(archive,'command',side_effect=command),self.assertRaises(ValueError):
-            archive.publish(self.item,paths,note,'cookorz1/arthur-firmware')
+            archive.publish(self.item,paths,note,'cookorz1/ax1800pro-cookwrt')
         self.assertEqual(calls,[])

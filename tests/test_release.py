@@ -46,6 +46,13 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual((self.root/'source/files/etc/arthur-version').read_text().strip(),'1.5.0-rc.1')
         data=json.loads((self.root/'source/files/etc/arthur-release.json').read_text());self.assertEqual(data['author'],'by-cookorz');self.assertEqual(data['source_commit'],COMMIT)
 
+    def test_local_build_url_defaults_to_renamed_repository(self):
+        import os
+        with patch.dict(os.environ, {}, clear=True):
+            data = release.metadata(self.project, COMMIT)
+        self.assertTrue(data['build_url'].startswith(
+            'https://github.com/cookorz1/ax1800pro-cookwrt/actions/runs/'))
+
     def test_prepare_preserves_bytes_and_links_names_hashes_and_source(self):
         data=self.prepared();record,assets=publisher.validated_assets(self.output,COMMIT)
         self.assertEqual(record['version'],'1.5.0-rc.1');self.assertEqual({i['type'] for i in record['images']},{'factory','sysupgrade'})
@@ -67,7 +74,7 @@ class ReleaseTests(unittest.TestCase):
     def test_existing_release_is_never_overwritten(self):
         self.prepared()
         with patch.object(publisher,'gh',return_value='existing') as gh:
-            with self.assertRaises(ValueError):publisher.publish(self.output,COMMIT,'cookorz1/arthur-firmware')
+            with self.assertRaises(ValueError):publisher.publish(self.output,COMMIT,'cookorz1/ax1800pro-cookwrt')
             self.assertEqual(gh.call_count,1)
 
     def test_publish_stays_draft_until_assets_pass_verification(self):
@@ -75,7 +82,7 @@ class ReleaseTests(unittest.TestCase):
         data=self.prepared();_,assets=publisher.validated_assets(self.output,COMMIT)
         responses=[None,None,json.dumps({'tag_name':data['tag'],'draft':True,'id':42,'target_commitish':COMMIT}),'uploaded',json.dumps({'assets':[{'name':p.name,'size':p.stat().st_size,'digest':'sha256:'+hashlib.sha256(p.read_bytes()).hexdigest()} for p in assets]}),'published']
         with patch.object(publisher,'gh',side_effect=responses) as gh:
-            publisher.publish(self.output,COMMIT,'cookorz1/arthur-firmware')
+            publisher.publish(self.output,COMMIT,'cookorz1/ax1800pro-cookwrt')
             self.assertIn('POST',gh.call_args_list[2].args)
             self.assertEqual(gh.call_args_list[3].args[:2],('release','upload'))
             self.assertIn('--draft=false',gh.call_args_list[-1].args)
@@ -85,18 +92,18 @@ class ReleaseTests(unittest.TestCase):
     def test_incomplete_upload_never_publishes(self):
         data=self.prepared()
         with patch.object(publisher,'gh',side_effect=[None,None,json.dumps({'tag_name':data['tag'],'draft':True,'id':42,'target_commitish':COMMIT}),'uploaded',json.dumps({'assets':[]})]) as gh:
-            with self.assertRaises(ValueError):publisher.publish(self.output,COMMIT,'cookorz1/arthur-firmware')
+            with self.assertRaises(ValueError):publisher.publish(self.output,COMMIT,'cookorz1/ax1800pro-cookwrt')
             self.assertFalse(any('--draft=false' in call.args for call in gh.call_args_list))
 
     def test_push_publication_skips_existing_release_without_replacing_assets(self):
         self.prepared()
         with patch.object(publisher,'gh',return_value='existing') as gh:
-            publisher.publish(self.output,COMMIT,'cookorz1/arthur-firmware',skip_existing=True)
+            publisher.publish(self.output,COMMIT,'cookorz1/ax1800pro-cookwrt',skip_existing=True)
             self.assertEqual(gh.call_count,1)
 
     def test_missing_server_digest_keeps_release_draft(self):
         data=self.prepared();_,assets=publisher.validated_assets(self.output,COMMIT)
         responses=[None,None,json.dumps({'tag_name':data['tag'],'draft':True,'id':42,'target_commitish':COMMIT}),'uploaded',json.dumps({'assets':[{'name':p.name,'size':p.stat().st_size} for p in assets]})]
         with patch.object(publisher,'gh',side_effect=responses) as gh:
-            with self.assertRaises(ValueError): publisher.publish(self.output,COMMIT,'cookorz1/arthur-firmware')
+            with self.assertRaises(ValueError): publisher.publish(self.output,COMMIT,'cookorz1/ax1800pro-cookwrt')
             self.assertFalse(any('--draft=false' in call.args for call in gh.call_args_list))

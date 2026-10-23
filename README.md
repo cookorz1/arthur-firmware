@@ -2,23 +2,23 @@
 
 <img src="package/arthur/files/www/luci-static/arthur/avatar.jpg" width="96" height="96" alt="cookorz 作者标志">
 
-# jdy-cookorz
+# CookWrt · AX1800 Pro
 
-**京东云亚瑟 AX1800 Pro 定制固件 · by-cookorz**
+**京东云亚瑟 AX1800 Pro / JDCloud RE-SS-01 定制固件 · by-cookorz**
 
 USB 随身 WiFi 上网 · 双频 Wi-Fi · 中文 Argon · iStore · OpenClash
 
-[![构建状态](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml/badge.svg)](https://github.com/cookorz1/arthur-firmware/actions/workflows/build.yml)
+[![构建状态](https://github.com/cookorz1/ax1800pro-cookwrt/actions/workflows/build.yml/badge.svg)](https://github.com/cookorz1/ax1800pro-cookwrt/actions/workflows/build.yml)
 [![源码版本](https://img.shields.io/badge/source-1.5.0--rc.5-blue)](VERSION)
-[![已发布候选版](https://img.shields.io/badge/release-1.5.0--rc.5-orange)](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.5)
+[![已发布候选版](https://img.shields.io/badge/release-1.5.0--rc.5-orange)](https://github.com/cookorz1/ax1800pro-cookwrt/releases/tag/v1.5.0-rc.5)
 
-[固件下载](https://github.com/cookorz1/arthur-firmware/releases) · [更新日志](CHANGELOG.md) · [源码与构建](#源码与构建) · [使用与排查](docs/USAGE.md)
+[固件下载](https://github.com/cookorz1/ax1800pro-cookwrt/releases) · [更新日志](CHANGELOG.md) · [源码与构建](#源码与构建) · [使用与排查](docs/USAGE.md)
 
 </div>
 
 ## 项目简介
 
-**jdy-cookorz** 是面向京东云亚瑟 **AX1800 Pro / JDCloud RE-SS-01** 的定制路由固件，基于 LibWrt，由 **cookorz** 维护。项目围绕 USB 随身 WiFi 网络共享、家庭有线与无线接入、应用管理和网络状态查看进行适配。
+**CookWrt** 是面向京东云亚瑟 **AX1800 Pro / JDCloud RE-SS-01** 的定制路由固件，基于 LibWrt，由 **cookorz** 维护，仓库名称为 `ax1800pro-cookwrt`。项目重点适配 **USB 随身 WiFi 网络共享、USB 转 Wi-Fi 转发、双频无线、OpenClash 与 iStore 应用管理**。现有 rc.5 的主机名、登录界面及固件文件仍使用 `jdy-cookorz` 标识。
 
 **rc.5 重点优化 USB 随身 WiFi 上网后，经亚瑟 Wi-Fi 共享的转发体验**，默认开启软件流量分载与 USB 多核分流。使用者提供的三轮对照中，新固件平均为 **425.76 Mbps**，旧固件平均为 **374.30 Mbps**，提升约 **13.7%**，新固件最高为 **465.70 Mbps**。完整采样与测试范围见 [实测记录](docs/PERFORMANCE.md)。
 
@@ -26,24 +26,26 @@ USB 随身 WiFi 上网 · 双频 Wi-Fi · 中文 Argon · iStore · OpenClash
 
 登录页、管理侧栏和浏览器图标统一使用作者头像与 **by-cookorz** 标识，支持深浅色切换和手机布局。定制代码、构建配置及发布流程公开，每个发布版本保留源码提交、构建记录与镜像校验文件。
 
+项目主题：`openwrt` · `jdcloud` · `ax1800pro` · `usb-tethering` · `openclash`。最新候选版 **v1.5.0-rc.5** 已发布，默认 USB RPS 多核分流，OpenClash 运行时保留；全新安装默认软件流量分载。
+
 ## 版本状态与下载
 
 | 状态 | 版本 | 来源 |
 | --- | --- | --- |
-| 最新已发布候选版 | **1.5.0-rc.5** | [Release](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.5) · [Actions #17](https://github.com/cookorz1/arthur-firmware/actions/runs/39768121777) |
-| 上一候选版 | **1.5.0-rc.4** | [Release](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.4) · [Actions #16](https://github.com/cookorz1/arthur-firmware/actions/runs/39605685842) |
-| 历史版本 | build-4 ～ 1.5.0-rc.3 | [全部 Releases](https://github.com/cookorz1/arthur-firmware/releases) · [历史构建来源](.github/RELEASE_ARCHIVE.md) |
+| 最新已发布候选版 | **1.5.0-rc.5** | [Release](https://github.com/cookorz1/ax1800pro-cookwrt/releases/tag/v1.5.0-rc.5) · [Actions #17](https://github.com/cookorz1/ax1800pro-cookwrt/actions/runs/39768121777) |
+| 上一候选版 | **1.5.0-rc.4** | [Release](https://github.com/cookorz1/ax1800pro-cookwrt/releases/tag/v1.5.0-rc.4) · [Actions #16](https://github.com/cookorz1/ax1800pro-cookwrt/actions/runs/39605685842) |
+| 历史版本 | build-4 ～ 1.5.0-rc.3 | [全部 Releases](https://github.com/cookorz1/ax1800pro-cookwrt/releases) · [历史构建来源](.github/RELEASE_ARCHIVE.md) |
 
-**rc.5 已构建成功并发布，现可直接下载。** 对应源码提交 [`01e43e4a7ffa`](https://github.com/cookorz1/arthur-firmware/tree/01e43e4a7ffaf9cd28389c317015b39444bd0047)，已通过行为测试、界面检查、编译与附件校验，并收到 USB 共享经 Wi-Fi 使用的实测反馈；继续保留 Pre-release 标记。
+**rc.5 已构建成功并发布，现可直接下载。** 对应源码提交 [`01e43e4a7ffa`](https://github.com/cookorz1/ax1800pro-cookwrt/tree/01e43e4a7ffaf9cd28389c317015b39444bd0047)，已通过行为测试、界面检查、编译与附件校验，并收到 USB 共享经 Wi-Fi 使用的实测反馈；继续保留 Pre-release 标记。
 
 ### rc.5 固件下载
 
 | 文件 | 用途 |
 | --- | --- |
-| **[factory.bin](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.5/jdy-cookorz-arthur-v1.5.0-rc.5-01e43e4a7ffa-factory.bin)** | 通过兼容本镜像格式及分区布局的 U-Boot 刷入 |
-| **[sysupgrade.bin](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.5/jdy-cookorz-arthur-v1.5.0-rc.5-01e43e4a7ffa-sysupgrade.bin)** | 从板型和分区布局匹配的系统内升级 |
-| [SHA256SUMS](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.5/SHA256SUMS) | 下载完整性校验 |
-| [FIRMWARE_VERSION.json](https://github.com/cookorz1/arthur-firmware/releases/download/v1.5.0-rc.5/FIRMWARE_VERSION.json) | 镜像名称、大小、SHA-256、源码提交及原始构建记录 |
+| **[factory.bin](https://github.com/cookorz1/ax1800pro-cookwrt/releases/download/v1.5.0-rc.5/jdy-cookorz-arthur-v1.5.0-rc.5-01e43e4a7ffa-factory.bin)** | 通过兼容本镜像格式及分区布局的 U-Boot 刷入 |
+| **[sysupgrade.bin](https://github.com/cookorz1/ax1800pro-cookwrt/releases/download/v1.5.0-rc.5/jdy-cookorz-arthur-v1.5.0-rc.5-01e43e4a7ffa-sysupgrade.bin)** | 从板型和分区布局匹配的系统内升级 |
+| [SHA256SUMS](https://github.com/cookorz1/ax1800pro-cookwrt/releases/download/v1.5.0-rc.5/SHA256SUMS) | 下载完整性校验 |
+| [FIRMWARE_VERSION.json](https://github.com/cookorz1/ax1800pro-cookwrt/releases/download/v1.5.0-rc.5/FIRMWARE_VERSION.json) | 镜像名称、大小、SHA-256、源码提交及原始构建记录 |
 
 使用 U-Boot 刷机时选择 **factory.bin**。GitHub 自动附带的 **Source code ZIP / TAR 是源码包**；刷机使用 Release 附件中的 `.bin`。Actions 的 Artifacts 为 ZIP，需要先解压。
 
@@ -129,8 +131,8 @@ ZRAM 使用压缩内存；手动回收仅释放可回收缓存，不会结束代
 项目定制代码和构建文件已同步到本仓库，可通过 **Code → Download ZIP** 下载，或使用：
 
 ```sh
-git clone https://github.com/cookorz1/arthur-firmware.git
-cd arthur-firmware
+git clone https://github.com/cookorz1/ax1800pro-cookwrt.git
+cd ax1800pro-cookwrt
 ```
 
 | 路径 | 内容 |
@@ -143,13 +145,13 @@ cd arthur-firmware
 | [tests](tests) | 行为、界面与发布校验测试 |
 | [.github/workflows](.github/workflows) | 自动构建、发布及历史固件归档流程 |
 
-本仓库保存构建配置与定制代码，LibWrt、LuCI 等上游源码在构建时按固定提交获取。完整编译环境与命令见 [BUILDING.md](docs/BUILDING.md)；rc.5 功能源码固定在 [`01e43e4a7ffa`](https://github.com/cookorz1/arthur-firmware/tree/01e43e4a7ffaf9cd28389c317015b39444bd0047)。
+本仓库保存构建配置与定制代码，LibWrt、LuCI 等上游源码在构建时按固定提交获取。完整编译环境与命令见 [BUILDING.md](docs/BUILDING.md)；rc.5 功能源码固定在 [`01e43e4a7ffa`](https://github.com/cookorz1/ax1800pro-cookwrt/tree/01e43e4a7ffaf9cd28389c317015b39444bd0047)。
 
 ## 版本记录与反馈
 
 版本号由 `VERSION` 统一管理，[CHANGELOG.md](CHANGELOG.md) 记录每版变化。Release 固定对应源码提交，提供镜像、SHA-256 和原始构建记录；已发布版本不替换附件、不移动标签，后续修改使用新版本。
 
-反馈问题时，请在 [Issues](https://github.com/cookorz1/arthur-firmware/issues) 提供机型、版本、刷入方式、是否保留配置、USB / WAN 接入方式及复现步骤。网络问题请附 OpenClash 模式、加速设置和必要日志，删除订阅地址、节点密码等私密信息。
+反馈问题时，请在 [Issues](https://github.com/cookorz1/ax1800pro-cookwrt/issues) 提供机型、版本、刷入方式、是否保留配置、USB / WAN 接入方式及复现步骤。网络问题请附 OpenClash 模式、加速设置和必要日志，删除订阅地址、节点密码等私密信息。
 
 SSH 查看当前设备版本与源码：
 

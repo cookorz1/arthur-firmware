@@ -1,4 +1,4 @@
-name: Archive successful Arthur firmware builds
+name: Archive successful CookWrt Arthur builds
 on:
   workflow_dispatch:
   push:
@@ -8,6 +8,7 @@ on:
       - '.github/workflows/archive-releases.yml'
       - '.github/scripts/archive_releases.py'
       - '.github/tests/test_archive_releases.py'
+      - '.github/tests/legacy_archive_hashes.json'
 permissions:
   contents: read
   actions: read

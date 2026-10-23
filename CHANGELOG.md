@@ -2,9 +2,16 @@
 
 项目维护与界面定制：**by-cookorz**。版本号遵循 `主版本.功能版本.修订版本`，测试候选版使用 `-rc.N`。
 
+## 仓库地址与项目资料更新 · 2026-10-23
+
+- 仓库更名为 `cookorz1/ax1800pro-cookwrt`，同步修正首页、下载、源码、构建记录、界面仓库入口及后续发布元数据的地址。
+- 项目展示名称使用 CookWrt · AX1800 Pro，突出京东云亚瑟、USB 网络共享、Wi-Fi 转发优化、OpenClash 和最新 rc.5；现有固件内的 `jdy-cookorz` 标识与已发布文件保持原样。
+- 历史归档 API 使用新仓库地址，旧记录保留原命名空间；增加九个版本记录与说明的字节一致性回归检查。
+- 补充仓库简介及 Topics 配置文案。此项为仓库维护，不生成新固件版本，也不覆盖历史附件。
+
 ## 发布与实测补记 · 2026-10-23
 
-- [v1.5.0-rc.5](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.5) 已构建成功并发布，来自 [Actions #17](https://github.com/cookorz1/arthur-firmware/actions/runs/39768121777)，源码固定为 `01e43e4a7ffaf9cd28389c317015b39444bd0047`。
+- [v1.5.0-rc.5](https://github.com/cookorz1/ax1800pro-cookwrt/releases/tag/v1.5.0-rc.5) 已构建成功并发布，来自 [Actions #17](https://github.com/cookorz1/ax1800pro-cookwrt/actions/runs/39768121777)，源码固定为 `01e43e4a7ffaf9cd28389c317015b39444bd0047`。
 - 项目首页更新为 rc.5 下载入口，补充 USB 网络共享经亚瑟 Wi-Fi 使用的实测反馈：旧固件三次平均 374.30 Mbps，新固件三次平均 425.76 Mbps，提升约 13.7%；新固件最高 465.70 Mbps。全部采样均计入，详见 [实测记录](docs/PERFORMANCE.md)。
 - 此次仅更新说明与验证记录，原始镜像、源码标签及已发布附件不变；保留 Pre-release 标记，不将本次测速扩展为 OpenClash 代理吞吐或长期稳定性结论。
 
@@ -25,8 +32,8 @@
 
 ## 发布状态补记 · 2026-10-22
 
-- [v1.5.0-rc.4](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.4)：原 [Actions #16](https://github.com/cookorz1/arthur-firmware/actions/runs/39605685842) 构建成功，源码 `0a712e63c0d9`，补充发布原始镜像及校验记录。
-- [v1.5.0-rc.3](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.3)：原 [Actions #15](https://github.com/cookorz1/arthur-firmware/actions/runs/39564528452) 构建成功，源码 `b1456497a6dc`，补充发布原始镜像及校验记录。
+- [v1.5.0-rc.4](https://github.com/cookorz1/ax1800pro-cookwrt/releases/tag/v1.5.0-rc.4)：原 [Actions #16](https://github.com/cookorz1/ax1800pro-cookwrt/actions/runs/39605685842) 构建成功，源码 `0a712e63c0d9`，补充发布原始镜像及校验记录。
+- [v1.5.0-rc.3](https://github.com/cookorz1/ax1800pro-cookwrt/releases/tag/v1.5.0-rc.3)：原 [Actions #15](https://github.com/cookorz1/ax1800pro-cookwrt/actions/runs/39564528452) 构建成功，源码 `b1456497a6dc`，补充发布原始镜像及校验记录。
 - 本次同步只补齐 Releases 和项目说明，没有重新编译或替换镜像。两版保留 Pre-release 标记，完整实机验收状态见各版说明；[全部版本与构建来源](.github/RELEASE_ARCHIVE.md)。
 
 ## [1.5.0-rc.4] - 2026-10-21
@@ -94,22 +101,22 @@
 
 ## [1.4.0] - 2026-10-21
 
-历史构建基线补记，对应源码 [`2f38f92`](https://github.com/cookorz1/arthur-firmware/commit/2f38f92cf70b9865d3a54b567404464ca5be92f7)，现已按历史归档补充发布同名 Pre-release，保留原始镜像与来源记录。
+历史构建基线补记，对应源码 [`2f38f92`](https://github.com/cookorz1/ax1800pro-cookwrt/commit/2f38f92cf70b9865d3a54b567404464ca5be92f7)，现已按历史归档补充发布同名 Pre-release，保留原始镜像与来源记录。
 
 - 加入 jdy-cookorz 雪山风格首页、统一登录页、深色侧栏及深浅切换。
 - 首页展示 WAN / USB 实时流量、CPU、内存、系统存储、端口速率、邻居设备与加速保护状态。
 - 增加管理功能搜索，以及 OpenClash、iStore、网络检测、加速与内存快捷入口。
 - 修复深色数字对比度和手机菜单按钮；检查五种屏幕宽度。
-- [Actions #12](https://github.com/cookorz1/arthur-firmware/actions/runs/39477735748) 构建成功；通过 49 个 Python 用例、三组 Node 检查与浏览器布局检查。实机验收单独记录。
+- [Actions #12](https://github.com/cookorz1/ax1800pro-cookwrt/actions/runs/39477735748) 构建成功；通过 49 个 Python 用例、三组 Node 检查与浏览器布局检查。实机验收单独记录。
 
 ## [1.3.0] - 2026-10-20
 
-历史构建基线补记，对应源码 [`23dcca5`](https://github.com/cookorz1/arthur-firmware/commit/23dcca586abf380f4bbf5619a51e50fd43cf155b)，现已按历史归档补充发布同名 Pre-release，保留原始镜像与来源记录。
+历史构建基线补记，对应源码 [`23dcca5`](https://github.com/cookorz1/ax1800pro-cookwrt/commit/23dcca586abf380f4bbf5619a51e50fd43cf155b)，现已按历史归档补充发布同名 Pre-release，保留原始镜像与来源记录。
 
 - 加入 BBR / Cubic、NSS 路由加速兼容保护、ZRAM 和手动缓存回收。
 - OpenClash 启停及重载时保护代理转发；根据 QoS / 多核转发状态暂停 NSS。
 - 保留 USB 热插拔、开关、网络检测和各端口速率功能。
-- [Actions #8](https://github.com/cookorz1/arthur-firmware/actions/runs/39446271943) 构建成功，性能与共存效果仍以实机结果为准。
+- [Actions #8](https://github.com/cookorz1/ax1800pro-cookwrt/actions/runs/39446271943) 构建成功，性能与共存效果仍以实机结果为准。
 
 ## 更早的构建
 

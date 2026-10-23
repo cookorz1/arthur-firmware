@@ -41,12 +41,15 @@ def digest(path):
 
 def read_plan(path):
     plan = json.loads(path.read_text(encoding='utf-8'))
-    if plan.get('schema_version') != 1 or plan.get('repository') != 'cookorz1/arthur-firmware':
+    if plan.get('schema_version') != 1 or plan.get('repository') != 'cookorz1/ax1800pro-cookwrt':
         raise ValueError('Unexpected archive repository/schema')
     if not plan.get('releases'):
         raise ValueError('Archive plan is empty')
     tags, artifacts = set(), set()
     for item in plan['releases']:
+        if item.get('record_repository', plan['repository']) not in (
+                plan['repository'], 'cookorz1/arthur-firmware'):
+            raise ValueError('Unexpected historical record repository')
         if not re.fullmatch(r'(?:v[0-9]+\.[0-9]+\.[0-9]+(?:-rc\.[1-9][0-9]*)?|build-[1-9][0-9]*)', item['tag']):
             raise ValueError('Invalid archive tag')
         if item['tag'] in tags or item['artifact_id'] in artifacts:
@@ -128,11 +131,15 @@ def prepare(item, repository, working):
     command('api', f'repos/{repository}/actions/artifacts/{item["artifact_id"]}/zip', destination=archive)
     output = working / item['tag']
     images = extract_verified(item, archive, output)
+    # API operations use the renamed repository. Already-published provenance
+    # must retain its original namespace and bytes, including source run URLs.
+    record_repository = item.get('record_repository', repository)
+    source_run_url = f'https://github.com/{record_repository}/actions/runs/{item["run_id"]}'
     record = {
-        'schema_version': 1, 'repository': repository, 'author': 'by-cookorz',
+        'schema_version': 1, 'repository': record_repository, 'author': 'by-cookorz',
         'tag': item['tag'], 'kind': item['kind'], 'source_commit': item['source_commit'],
         'source_run_id': item['run_id'], 'source_run_number': item['run_number'],
-        'source_run_url': run['html_url'], 'source_run_created_at': run['created_at'],
+        'source_run_url': source_run_url, 'source_run_created_at': run['created_at'],
         'source_artifact_id': item['artifact_id'], 'source_artifact_name': item['artifact_name'],
         'source_artifact_sha256': item['artifact_sha256'],
         'project_version': item['version'] if item['kind'] == 'versioned' else None,
@@ -156,8 +163,8 @@ def prepare(item, repository, working):
             '- 历史版本的默认账号、地址和无线设置请以对应提交为准，升级前备份自己的配置。\n'
             '\n## 版本来源\n\n'
             f'- 设备：京东云亚瑟 AX1800 Pro / JDCloud RE-SS-01。\n'
-            f'- 原始构建：[Actions #{item["run_number"]}]({run["html_url"]})。\n'
-            f'- 源码提交：[`{item["source_commit"][:12]}`](https://github.com/{repository}/commit/{item["source_commit"]})。\n'
+            f'- 原始构建：[Actions #{item["run_number"]}]({source_run_url})。\n'
+            f'- 源码提交：[`{item["source_commit"][:12]}`](https://github.com/{record_repository}/commit/{item["source_commit"]})。\n'
             f'- 原始构建时间：`{run["created_at"]}`（UTC）。\n'
             '- 验证范围：原构建成功，归档时重新核对 ZIP 摘要与两份固件的 SHA-256。实机运行情况另行记录。\n'
             '- 本次按测试 / 历史归档发布，保留上游 LibWrt、LuCI、Argon 等项目的来源与许可证。\n')

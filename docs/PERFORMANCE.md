@@ -1,6 +1,6 @@
 # USB 共享经 Wi-Fi 转发实测记录
 
-[返回项目首页](../README.md) · [rc.5 下载](https://github.com/cookorz1/arthur-firmware/releases/tag/v1.5.0-rc.5) · [更新日志](../CHANGELOG.md)
+[返回项目首页](../README.md) · [rc.5 下载](https://github.com/cookorz1/ax1800pro-cookwrt/releases/tag/v1.5.0-rc.5) · [更新日志](../CHANGELOG.md)
 
 ## 2026-10-23：rc.5 与旧固件对比
 
@@ -10,7 +10,7 @@
 | --- | --- |
 | 使用路径 | 随身 WiFi → USB 网络共享 → 京东云亚瑟 → Wi-Fi 终端 |
 | 新固件 | v1.5.0-rc.5，源码 `01e43e4a7ffaf9cd28389c317015b39444bd0047` |
-| 构建 | [Actions #17](https://github.com/cookorz1/arthur-firmware/actions/runs/39768121777)，已成功发布 Pre-release |
+| 构建 | [Actions #17](https://github.com/cookorz1/ax1800pro-cookwrt/actions/runs/39768121777)，已成功发布 Pre-release |
 | 旧固件 | 记录标注为旧固件，未提供其具体版本 |
 | 采样 | 每组 3 次，全部计入平均，未剔除首轮或较低结果 |
 

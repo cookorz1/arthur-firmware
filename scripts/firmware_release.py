@@ -44,7 +44,7 @@ def metadata(project, build_id):
     return {'project': 'jdy-cookorz', 'author': 'by-cookorz', 'version': version,
             'tag': 'v' + version, 'prerelease': '-rc.' in version, 'source_commit': build_id,
             'build_number': os.environ.get('GITHUB_RUN_NUMBER', 'local'),
-            'build_url': f'https://github.com/{os.environ.get("GITHUB_REPOSITORY", "cookorz1/arthur-firmware")}/actions/runs/{os.environ.get("GITHUB_RUN_ID", "")}',
+            'build_url': f'https://github.com/{os.environ.get("GITHUB_REPOSITORY", "cookorz1/ax1800pro-cookwrt")}/actions/runs/{os.environ.get("GITHUB_RUN_ID", "")}',
             'built_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
             'source_pins': dict(line.split('=', 1) for line in (project/'versions.env').read_text().splitlines() if line and not line.startswith('#')),
             'feed_pins': json.loads((project/'feeds.lock.json').read_text()), 'hardware_testing': 'pending'}

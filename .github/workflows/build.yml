@@ -1,4 +1,4 @@
-name: Build jdy-cookorz Arthur firmware
+name: Build CookWrt for JDCloud AX1800 Pro
 on:
   workflow_dispatch:
     inputs:
@@ -117,4 +117,3 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SKIP_EXISTING_RELEASE: ${{ github.event_name == 'push' && '1' || '0' }}
         run: python3 scripts/publish_release.py output
-
